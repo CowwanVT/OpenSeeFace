@@ -28,11 +28,8 @@ parser.add_argument("--feature-type", type=int, help="Sets which version of feat
 parser.add_argument("--numpy-threads", type=int, help="Numer of threads Numpy can use, doesn't seem to effect much", default=1)
 parser.add_argument("-T","--threads", type=int, help="Numer of threads used for landmark detection. Default is 1 (~15ms per frame on my computer), 2 gets slightly faster frames (~10ms on my computer), more than 2 doesn't seem to help much", default=1)
 parser.add_argument("-v", "--visualize", type=int, help="Set this to 1 to visualize the tracking", default=0)
-parser.add_argument("--low-latency", type=int, help="Low latency mode. Lowers latency, at the cost of inconsistent timings", default = 0)
+parser.add_argument("--low-latency", type=int, help="Low latency mode. Lowers latency, at the cost of inconsistent timings. Combine with --threads 2 (or more) for maxiumum effect. 0 is off, 1 is on", default = 0)
 parser.add_argument("--target-brightness", type=float, help="range 0.25-0.75, Target brightness of the brightness adjustment. Defaults to 0.55", default = 0.55)
-
-
-
 
 args = parser.parse_args()
 
@@ -56,11 +53,11 @@ if lowLatency:
     target_duration = 0.75 / fps
     frameQueueSize = 1
 elif height > 480:
-    target_duration = 1 / fps
+    target_duration = 1 / (fps - 0.001) #idk if this does any good, but it might keep me from waiting on the webcam
     frameQueueSize = 2
 else:
     frameQueueSize = 1
-    target_duration = 1 / fps
+    target_duration = 1 / (fps - 0.001)
 
 
 frameQueue = queue.Queue(maxsize=frameQueueSize)
@@ -69,7 +66,7 @@ packetQueue = queue.Queue()
 
 #I want to decouple the requests so they don't block anything else if they're slow
 VTS = vts.VTS(target_ip, target_port, silent, height, width, packetQueue)
-packetSenderThread = threading.Thread(target = VTS.packetSender, args = [],)
+packetSenderThread = threading.Thread(target = VTS.start, args = [],)
 packetSenderThread.daemon = True
 packetSenderThread.start()
 
@@ -84,6 +81,7 @@ if previewFlag or visualizeFlag:
     previewThread.daemon = True
     previewThread.start()
 
+
 frame_count = 0
 peak_frame_time=0.0
 total_active_time = 0.0
@@ -92,12 +90,9 @@ frame_start = 0.0
 peak_time_between = 0.0
 peak_camera_latency = 0.0
 total_camera_latency = 0.0
-sleepTimer = 0.0
-
-failures = 0
 peakTotalLatency = 0.0
 totalTotalLatency = 0.0
-
+sleepTime = 0.0
 tracker = Tracker(width, height, featureType, threads, threshold=args.threshold, silent=silent, model_type=args.model, detection_threshold=args.detection_threshold)
 
 #don't start until the webcam is ready, then give it a little more time to fill it's buffer
@@ -108,7 +103,6 @@ face = None
 totalFrameLatency = 0
 try:
     while True:
-        #clearing these so there's no stale data to confuse the checks
         packet = None
         frame_start = time.perf_counter()
         frame_count += 1
@@ -138,7 +132,12 @@ try:
         peak_frame_time = max(peak_frame_time, frameTime)
 
         duration = time.perf_counter() - frame_start
-        time.sleep(max(0, target_duration - duration))
+        if not lowLatency:
+            sleepTime = target_duration - duration
+            if sleepTime > 0:
+                time.sleep(sleepTime)
+            else:
+                print("Cannot maintain framerate")
 
         peak_time_between = max(peak_time_between, time.perf_counter() -frame_start)
         total_run_time += time.perf_counter() -frame_start

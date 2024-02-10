@@ -2,6 +2,7 @@ import time
 import socket
 import struct
 
+
 class VTS():
 
     features = ["eye_l", "eye_r", "eyebrow_steepness_l", "eyebrow_updown_l", "eyebrow_quirk_l", "eyebrow_steepness_r", "eyebrow_updown_r", "eyebrow_quirk_r", "mouth_corner_updown_l", "mouth_corner_inout_l", "mouth_corner_updown_r", "mouth_corner_inout_r", "mouth_open", "mouth_wide"]
@@ -15,7 +16,7 @@ class VTS():
         self.height = height
         self.packetQueue = packetQueue
 
-    def packetSender(self):
+    def start(self):
         while True:
             packet = self.packetQueue.get()
             self.sendPacket(packet)

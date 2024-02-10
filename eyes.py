@@ -61,7 +61,6 @@ class Eye():
             im = rotate_image(im, a, self.outerPoint)
         im = im[int(y1):int(y2), int(x1):int(x2)]
 
-
         if np.prod(im.shape) < 1:
             self.image = None
             self.info = None

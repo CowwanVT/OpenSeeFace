@@ -37,7 +37,7 @@ class Webcam():
         if height > 480:
             self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
 
-        self.webcamBuffer = 2
+        self.webcamBuffer = 2 #1 causes issues, more than 2 doesn't seem to help
         self.cap.set(38, self.webcamBuffer)
         self.cap.set(3, width)
         self.cap.set(4, height)
@@ -50,8 +50,8 @@ class Webcam():
         self.cameraLatency = 0
         self.brightnessFrame = None #a copy of the brightness channel for gamma calculations
         self.targetBrightness = targetBrightness    #the target average brightness of the face, used in gamma calculations
-        self.width = width  #unused, but it seemed useful to have around
-        self.height = height    #unused, but it seemed useful to have around
+        self.width = width
+        self.height = height
         self.ret = 0
         self.frame = None
 
@@ -99,7 +99,7 @@ class Webcam():
         img_yuv[:,:,0] = lookupTable[img_yuv[:,:,0]]
         #I convert the image to RBG here because it was getting repeatedly converted in the face tracking
         self.frame = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)
-
+        return
 
     #calculate the ideal gamma based on the brightness of the user's face
     #kind of winging it with the math, but it's a lot better than calculating based on the whole frame
