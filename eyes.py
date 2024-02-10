@@ -148,9 +148,6 @@ class EyeTracker():
         self.leftEye = Eye(1)
         self.rightEye = Eye(0)
         self.offset = None
-        self.face = None
-        self.faceCenter = None
-        self.faceRadius = None
 
     def get_eye_state(self, models, frame, lms):
 
@@ -181,13 +178,14 @@ class EyeTracker():
         x1, y1 = lms.min(0)
         x2, y2 = lms.max(0)
 
+        w = frame.width
+        h = frame.height
+        x1 = frame.clampX(x1)
+        y1 = frame.clampY(y1)
 
-        self.faceRadius  = np.array([(x2 - x1), (y2 - y1)])*0.6
-        self.faceCenter = (np.array((x1, y1)) + np.array((x2, y2))) / 2.0
-        w, h, _ = frame.shape
-        x1, y1 = clamp_to_im(self.faceCenter - self.faceRadius , h, w)
-        x2, y2 = clamp_to_im(self.faceCenter + self.faceRadius  + 1, h, w)
         self.offset = np.array((x1, y1))
-        self.face = [x1, y1, x2 - x1, y2 - y1]
         lms = (lms[:, 0:2] - self.offset).astype(int)
-        return lms, frame[y1:y2, x1:x2]
+        image = frame.crop(x1, x2, y1, y2)
+
+
+        return lms, image
