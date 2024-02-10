@@ -6,7 +6,6 @@ import threading
 import queue
 import time
 from tracker import Tracker
-import multiprocessing
 import webcam
 import vts
 import preview
@@ -100,32 +99,34 @@ frameQueue.get()
 time.sleep(0.1)
 
 face = None
-totalFrameLatency = 0
+
 try:
     while True:
         packet = None
         frame_start = time.perf_counter()
         frame_count += 1
-        frame, camera_latency, totalFrameLatency = frameQueue.get()
+        frame = frameQueue.get()
         frame_get = time.perf_counter()
         #If I don't wait a few frames to start tracking I get wild peak frame times, like 500ms
         if frame_count > 5:
-            peak_camera_latency = max(camera_latency, peak_camera_latency)
-            total_camera_latency+= camera_latency
+            peak_camera_latency = max(frame.cameraLatency, peak_camera_latency)
+            total_camera_latency+= frame.cameraLatency
 
         if previewFlag:
             #there's no reason to ever wait on this process or give it much of a queue
             if previewFrameQueue.qsize() < 1:
-                previewFrameQueue.put(frame)
+                previewFrameQueue.put(frame.image)
 
-        faceInfo, face  = tracker.predict(frame)
+        faceInfo, frame.face  = tracker.predict(frame)
 
         if faceInfo is not None:
             packet = VTS.preparePacket(faceInfo)
-            if faceQueue.qsize() < 1:
-                faceQueue.put(face)
             if visualizeFlag:
-                preview.visualize(frame, faceInfo, previewFrameQueue, face_center, face_radius)
+                preview.visualize(frame.image, faceInfo, previewFrameQueue, face_center, face_radius)
+
+        if frame.face is not None:
+            if faceQueue.qsize() < 1:
+                faceQueue.put(frame)
 
         frameTime = time.perf_counter() - frame_get
         total_active_time += frameTime
@@ -148,8 +149,8 @@ try:
         else:
             print("No data sent to VTS")
         if frame_count > 5:
-            peakTotalLatency = max(peakTotalLatency, (time.perf_counter() - totalFrameLatency))
-            totalTotalLatency += time.perf_counter() - totalFrameLatency
+            peakTotalLatency = max(peakTotalLatency, (time.perf_counter() - frame.startTime))
+            totalTotalLatency += time.perf_counter() - frame.startTime
 
 except KeyboardInterrupt:
     if not silent:
@@ -158,21 +159,23 @@ except KeyboardInterrupt:
 #printing statistics on close
 #it makes identifying problems easier
 
+#time from getting the frame from the webcam to sending face data to VTS
 print(f"Peak latency: {(peakTotalLatency*1000):.3f}ms")
 print(f"Average latency: {(totalTotalLatency*1000/(frame_count-5)):.3f}ms")
-#480p generally results in camera latencies between 0.5ms and 2.0ms
+
+#time taken to get frame from webcam
 print(f"Peak camera latency: {(peak_camera_latency*1000):.3f}ms")
 print(f"Average camera latency: {(total_camera_latency*1000/(frame_count-5)):.3f}ms")
-#The longest time a full cycle of the main loop takes, including sleep
-#indicates issues when higher than average time between frames by a significant amount
+
+#time between packets sent to VTS
 print(f"Peak time between frames: {(peak_time_between*1000):.3f}ms")
-#at 30fps this should be a hair above 33.333ms
 print(f"Average time between frames: {(total_run_time*1000/(frame_count)):.3f}ms")
-#These measure how long the main loop takes *not including sleep*
-#tends to be slightly longer than the average time given by the tracking status by 1ms to 2ms
-#because it includes detection frames and all the other minor operations that need to happen every frame
+
+#how long face detection took
 print(f"Peak frame time: {(peak_frame_time*1000):.3f}ms")
 print(f"Average frame time: { ((total_active_time)*1000/(frame_count)):.3f}ms")
+
+#how long the app ran
 print(f"Run time (seconds): {total_run_time:.2f} s\nFrames: {frame_count}")
 
 os._exit(0)

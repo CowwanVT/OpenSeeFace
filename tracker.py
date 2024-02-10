@@ -10,10 +10,6 @@ import landmarks
 import face
 
 
-
-#this file is so much smaller than it used to be, lol
-#I moved most of the functionality into separate files so they're easier to work with
-
 def clamp_to_im(pt, w, h):
     x = pt[0]
     y = pt[1]
@@ -79,7 +75,7 @@ class Tracker():
         im = np.expand_dims(im, 0)
         return np.transpose(im, (0,3,1,2))
 
-    def cropFace(self, im):
+    def cropFace(self, frame):
         duration_pp = 0.0
         x,y,w,h = self.face
 
@@ -88,16 +84,16 @@ class Tracker():
         crop_x2 = x + w + (w * 0.1)
         crop_y2 = y + h + (h * 0.125)
 
-        crop_x1, crop_y1 = clamp_to_im((crop_x1, crop_y1), self.width, self.height)
-        crop_x2, crop_y2 = clamp_to_im((crop_x2, crop_y2), self.width, self.height)
-        cropx = (crop_x2 - crop_x1)
-        cropy = (crop_y2 - crop_y1)
+        im = frame.crop(crop_x1, crop_x2, crop_y1, crop_y2)
 
-        if cropx < 64 or cropy < 64:
+        cropx = im.shape[1]
+        cropy = im.shape[0]
+
+        if im.shape[0] < 64 or im.shape[1] < 64:
             return (None, [], duration_pp )
 
         start_pp = time.perf_counter()
-        crop = self.preprocess(im[crop_y1:crop_y2, crop_x1:crop_x2])
+        crop = self.preprocess(im)
         duration_pp += 1000 * (time.perf_counter() - start_pp)
 
         scale_x = cropx / 224.
@@ -121,7 +117,7 @@ class Tracker():
 
         if self.face is None:
             start_fd = time.perf_counter()
-            self.face = facedetection.detect_faces(frame, self.model, self.detection_threshold)
+            self.face = facedetection.detect_faces(frame.image, self.model, self.detection_threshold)
             duration_fd = 1000 * (time.perf_counter() - start_fd)
             if self.face is None:
                 return self.early_exit("No faces found", start)
@@ -138,7 +134,7 @@ class Tracker():
         if confidence < self.threshold:
             return self.early_exit("Confidence below threshold", start)
 
-        eye_state = self.EyeTracker.get_eye_state(self.model, frame, lms)
+        eye_state = self.EyeTracker.get_eye_state(self.model, frame.image, lms)
 
         self.face_info.update((confidence, (lms, eye_state)), np.array(lms)[:, 0:2].mean(0))
 

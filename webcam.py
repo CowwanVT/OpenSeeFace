@@ -1,10 +1,8 @@
 import os
-
 os.environ["OMP_NUM_THREADS"] = str(1)
 import dshowcapture
 import cv2
 cv2.setNumThreads(6)
-import multiprocessing
 import time
 import numpy as np
 import math
@@ -47,79 +45,99 @@ class Webcam():
         self.mirror = mirrorInput
         self.frameQueue = frameQueue #outgoing frames from the webcam
         self.faceQueue = faceQueue  #incoming face data for gamma calculation
-        self.cameraLatency = 0
-        self.brightnessFrame = None #a copy of the brightness channel for gamma calculations
         self.targetBrightness = targetBrightness    #the target average brightness of the face, used in gamma calculations
-        self.width = width
-        self.height = height
-        self.ret = 0
-        self.frame = None
+
 
     def start(self):
 
         while self.cap.isOpened():
             frameStart= time.perf_counter()
-            totalFrameLatency = time.perf_counter()
-            self.getFrame()
-            self.cameraLatency = time.perf_counter() - frameStart
-            if self.ret:
-                self.applyGamma()
-                if self.mirror:
-                    self.frame = cv2.flip(self.frame, 1)
-                self.frameQueue.put([self.frame, self.cameraLatency, totalFrameLatency])
-                if self.faceQueue.qsize() > 0:
-                    self.updateGamma()
+            frame = self.getFrame()
+            if frame.ret:
+                self.frameQueue.put(frame)
+            if self.faceQueue.qsize() > 0:
+                self.updateGamma()
             sleepTime = self.targetFrameTime - (time.perf_counter() - frameStart)
             sleepTime = max(sleepTime, 0)
             time.sleep(sleepTime)
 
     def getFrame(self):
-        #My webcam's gain tends to be noisy
-        #and my gamma correction seems less noisy
-        #so I tell the camera not to apply gain
         self.cap.set(cv2.CAP_PROP_GAIN, 0)
-        #keeping track of how long it takes to get frames from the webcam
-        #because that one line is the cause of 90% of late frames
-        cameraStart = time.perf_counter()
-        self.ret, self.frame = self.cap.read()
-        self.cameraLatency = time.perf_counter() - cameraStart
-        return
 
-    #Applies a gamma curve to the frame
-    #Uses a lookup table because that's way faster than actually calculating every pixel
-    #Immensely improves tracking in low light situations
-    def applyGamma(self):
-        img_yuv = cv2.cvtColor(self.frame, cv2.COLOR_BGR2YUV)
-        #saving a copy of the brightness channel so I can use it to adjust the gamma based on where the face is in that frame
-        self.brightnessFrame = img_yuv[:,:,0].copy()
-        #building a lookup table on the fly
-        lookupTable = np.array(range(256))
-        loopupTable = lookupTable/255
-        lookupTable = np.power(loopupTable, self.gamma)*255
-        img_yuv[:,:,0] = lookupTable[img_yuv[:,:,0]]
-        #I convert the image to RBG here because it was getting repeatedly converted in the face tracking
-        self.frame = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)
-        return
+        cameraStart = time.perf_counter()
+
+        ret, image = self.cap.read()
+        if self.mirror and ret:
+            image = cv2.flip(self.image, 1)
+        frame = Frame(ret, image, self.gamma, cameraStart )
+        return frame
 
     #calculate the ideal gamma based on the brightness of the user's face
     #kind of winging it with the math, but it's a lot better than calculating based on the whole frame
     def updateGamma(self):
-        face = self.faceQueue.get()
+        frame = self.faceQueue.get()
 
-        x,y,w,h = face
-        crop_x1 = x
-        crop_y1 = y
-        crop_x2 = x + w
-        crop_y2 = y + h
-
-        crop_x1, crop_y1 = clamp_to_im((crop_x1, crop_y1), self.width, self.height)
-        crop_x2, crop_y2 = clamp_to_im((crop_x2, crop_y2), self.width, self.height)
-
-        croppedFace = self.brightnessFrame[crop_y1:crop_y2, crop_x1:crop_x2]
-
-        averageBrightness = np.mean(croppedFace)/256
+        crop = frame.cropGreyscale()
+        averageBrightness = np.mean(crop)/256
         self.gamma = math.log(self.targetBrightness, averageBrightness)
         return
 
 
+class Frame():
+    def __init__(self, ret, image, gamma, cameraStart):
+        self.greyscale = None
+        self.face = None
+        self.ret = ret
+        self.cameraLatency = time.perf_counter() - cameraStart
+        if ret:
+            self.image = self.applyGamma(image, gamma)
+            self.startTime = time.perf_counter()
+            self.width = self.image.shape[1]
+            self.height = self.image.shape[0]
+
+    def applyGamma(self,image, gamma):
+        img_yuv = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
+        #saving a copy of the brightness channel so I can use it to adjust the gamma based on where the face is in that frame
+        self.greyscale = img_yuv[:,:,0].copy()
+        #building a lookup table on the fly
+        lookupTable = np.array(range(256))
+        loopupTable = lookupTable/255
+        lookupTable = np.power(loopupTable, gamma)*255
+        img_yuv[:,:,0] = lookupTable[img_yuv[:,:,0]]
+        #I convert the image to RBG here because it was getting repeatedly converted in the face tracking
+        image = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)
+        return image
+
+    def crop(self, x1, x2, y1, y2):
+        x1 = self.clampX(x1)
+        x2 = self.clampX(x2)
+        y1 = self.clampY(y1)
+        y2 = self.clampY(y2)
+        crop = self.image[y1:y2,x1:x2]
+        return crop
+
+    def cropGreyscale(self):
+        x,y,w,h = self.face
+        x1 = x
+        y1 = y
+        x2 = x + w
+        y2 = y + h
+
+        x1 = self.clampX(x1)
+        x2 = self.clampX(x2)
+        y1 = self.clampY(y1)
+        y2 = self.clampY(y2)
+        crop = self.greyscale[y1:y2,x1:x2]
+        return crop
+
+
+    def clampX(self, x):
+        x = max(x, 1)
+        x = min (x, self.width - 1)
+        return int(x)
+
+    def clampY(self, y):
+        y = max(y, 1)
+        y = min (y, self.width - 1)
+        return int(y)
 

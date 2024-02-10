@@ -1,5 +1,4 @@
 import cv2
-import multiprocessing
 cv2.setNumThreads(6)
 
 #this is it's own file just for ceanlieness

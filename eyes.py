@@ -7,21 +7,19 @@ def clamp_to_im(pt, w, h):
     x = pt[0]
     y = pt[1]
     if x < 0:
-        x = 0
+        x = 1
     if y < 0:
-        y = 0
+        y = 1
     if x >= w:
-        x = w-1
+        x = w - 1
     if y >= h:
-        y = h-1
-    return (int(x), int(y+1))
+        y = h - 1
+    return (int(x), int(y))
 
-def rotate(origin, point, a): #runs 22 times per frame
+def rotate(origin, point, a):
     x, y = point - origin
-    cosa = math.cos(-a)
-    sina = math.sin(-a)
-    qx = origin[0] + cosa * x - sina * y
-    qy = origin[1] + sina * x + cosa * y
+    qx = origin[0] + math.cos(-a) * x - math.sin(-a) * y
+    qy = origin[1] + math.sin(-a) * x + math.cos(-a) * y
     return qx, qy
 
 def clamp (value, minimum, maxium):
@@ -182,6 +180,8 @@ class EyeTracker():
     def extract_face(self, frame, lms):
         x1, y1 = lms.min(0)
         x2, y2 = lms.max(0)
+
+
         self.faceRadius  = np.array([(x2 - x1), (y2 - y1)])*0.6
         self.faceCenter = (np.array((x1, y1)) + np.array((x2, y2))) / 2.0
         w, h, _ = frame.shape
