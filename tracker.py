@@ -4,7 +4,6 @@ import onnxruntime
 import cv2
 cv2.setNumThreads(6)
 import time
-import facedetection
 import eyes
 import landmarks
 import face
@@ -32,9 +31,9 @@ class Models():
         "lm_model3_opt.onnx",
         "lm_model4_opt.onnx"]
 
-    def __init__(self, threads,  model_type=3):
+    def __init__(self, threads,  model_type=3, detectionThreshold = 0.6):
         self.model_type = model_type
-
+        self.detectionThreshold = detectionThreshold
         model = self.models[self.model_type]
         model_base_path = os.path.join(os.path.dirname(__file__), os.path.join("models"))
         providersList = onnxruntime.capi._pybind_state.get_available_providers()
@@ -51,15 +50,48 @@ class Models():
 
         self.gazeTracker = onnxruntime.InferenceSession(os.path.join(model_base_path, "mnv3_gaze32_split_opt.onnx"), sess_options=options, providers=providersList)
 
+
+
+    def detectFaces(self, frame):
+
+        image = self.resizeImage(frame)
+
+        outputs, maxpool = self.faceDetection.run([], {'input': image})
+        outputs = outputs[0]
+        maxpool = maxpool[0]
+        mask = outputs[0] == maxpool[0]
+        mask2 = outputs[1] > 0.15
+        outputs[0] = outputs[0] * mask.astype(int) * mask2.astype(int)
+        faceLocation = np.argmax(outputs[0].flatten())
+        x = faceLocation % 56
+        y = faceLocation // 56
+        if outputs[0, y, x] < self.detectionThreshold:
+            return None
+        r = outputs[1, y, x] * 112.
+        results= (((x * 4) - r, (y * 4) - r, r*2,r*2))
+        results = np.array(results).astype(np.float32)
+        results[[0,2]] *= frame.shape[1] / 224.
+        results[[1,3]] *= frame.shape[0] / 224.
+
+        return results
+
+    def resizeImage(self, frame):
+        mean = np.float32(np.array([-2.1179, -2.0357, -1.8044]))
+        std = np.float32(np.array([0.0171, 0.0175, 0.0174]))
+        targetimageSize = [224, 224]
+        image = cv2.resize(frame, targetimageSize, interpolation=cv2.INTER_CUBIC) * std + mean
+        image = np.expand_dims(image, 0)
+        image = np.transpose(image, (0,3,1,2))
+        return image
+
 class Tracker():
     targetimageSize = [224, 224]
     std = np.float32(np.array([0.0171, 0.0175, 0.0174]))
     mean = np.float32(np.array([-2.1179, -2.0357, -1.8044]))
     def __init__(self, width, height, featureType, threads, model_type=3, detection_threshold=0.6, threshold=0.6, silent=False):
 
-        self.detection_threshold = detection_threshold
         self.EyeTracker = eyes.EyeTracker()
-        self.model = Models(threads, model_type = model_type)
+        self.model = Models(threads, model_type = model_type, detectionThreshold = detection_threshold)
 
         # Image normalization constants
         self.width = width
@@ -86,9 +118,6 @@ class Tracker():
 
         im = frame.crop(crop_x1, crop_x2, crop_y1, crop_y2)
 
-        cropx = im.shape[1]
-        cropy = im.shape[0]
-
         if im.shape[0] < 64 or im.shape[1] < 64:
             return (None, [], duration_pp )
 
@@ -96,8 +125,8 @@ class Tracker():
         crop = self.preprocess(im)
         duration_pp += 1000 * (time.perf_counter() - start_pp)
 
-        scale_x = cropx / 224.
-        scale_y = cropy / 224.
+        scale_x = im.shape[1] / 224.
+        scale_y = im.shape[0] / 224.
         crop_info = (crop_x1, crop_y1, scale_x, scale_y)
         return (crop, crop_info, duration_pp )
 
@@ -117,7 +146,7 @@ class Tracker():
 
         if self.face is None:
             start_fd = time.perf_counter()
-            self.face = facedetection.detect_faces(frame.image, self.model, self.detection_threshold)
+            self.face =  self.model.detectFaces(frame.image)
             duration_fd = 1000 * (time.perf_counter() - start_fd)
             if self.face is None:
                 return self.early_exit("No faces found", start)

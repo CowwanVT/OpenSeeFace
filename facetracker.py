@@ -33,20 +33,14 @@ parser.add_argument("--target-brightness", type=float, help="range 0.25-0.75, Ta
 args = parser.parse_args()
 
 #processing args
-target_ip = args.ip
-target_port = args.port
 fps = args.fps
 height = args.height
 width = args.width
-previewFlag = (args.preview == 1)
-mirror_input = args.mirror_input
 featureType = args.feature_type
 visualizeFlag = (args.visualize == 1)
 lowLatency = (args.low_latency == 1)
 threads = args.threads
-targetBrightness = min(max(args.target_brightness, 0.25), 0.75)
 silent = (args.silent == 1)
-
 
 if lowLatency:
     target_duration = 0.75 / fps
@@ -64,17 +58,36 @@ faceQueue = queue.Queue(maxsize=1)
 packetQueue = queue.Queue()
 
 #I want to decouple the requests so they don't block anything else if they're slow
-VTS = vts.VTS(target_ip, target_port, silent, height, width, packetQueue)
-packetSenderThread = threading.Thread(target = VTS.start, args = [],)
+VTS = vts.VTS()
+VTS.targetIP = args.ip
+VTS.targetPort = args.port
+VTS.silent = silent
+VTS.width = args.width
+VTS.height = args.height
+VTS.packetQueue = packetQueue
+
+
+packetSenderThread = threading.Thread(target = VTS.start)
 packetSenderThread.daemon = True
 packetSenderThread.start()
 
 
-webcamThread = threading.Thread(target=webcam.startProcess,args = (frameQueue, faceQueue, fps, targetBrightness, width, height,  mirror_input, ))
+Webcam = webcam.Webcam()
+Webcam.width = args.width
+Webcam.height = args.height
+Webcam.fps = args.fps
+Webcam.mirror = args.mirror_input
+Webcam.targetBrightness = min(max(args.target_brightness, 0.25), 0.75)
+Webcam.preview = (args.preview == 1)
+Webcam.frameQueue = frameQueue
+Webcam.faceQueue = faceQueue
+
+
+webcamThread = threading.Thread(target=Webcam.start)
 webcamThread.daemon = True
 webcamThread.start()
 
-if previewFlag or visualizeFlag:
+if visualizeFlag:
     previewFrameQueue = queue.Queue(maxsize=1)
     previewThread = threading.Thread(target=preview.startProcess, args = (previewFrameQueue, target_duration,))
     previewThread.daemon = True
@@ -111,11 +124,6 @@ try:
         if frame_count > 5:
             peak_camera_latency = max(frame.cameraLatency, peak_camera_latency)
             total_camera_latency+= frame.cameraLatency
-
-        if previewFlag:
-            #there's no reason to ever wait on this process or give it much of a queue
-            if previewFrameQueue.qsize() < 1:
-                previewFrameQueue.put(frame.image)
 
         faceInfo, frame.face  = tracker.predict(frame)
 

@@ -5,15 +5,15 @@ import struct
 class VTS():
 
     features = ["eye_l", "eye_r", "eyebrow_steepness_l", "eyebrow_updown_l", "eyebrow_quirk_l", "eyebrow_steepness_r", "eyebrow_updown_r", "eyebrow_quirk_r", "mouth_corner_updown_l", "mouth_corner_inout_l", "mouth_corner_updown_r", "mouth_corner_inout_r", "mouth_open", "mouth_wide"]
-    def __init__(self, target_ip, target_port, silent, height, width, packetQueue):
+    def __init__(self):
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.target_ip = target_ip
-        self.target_port = target_port
-        self.silent = silent
-        self.width = width
-        self.height = height
-        self.packetQueue = packetQueue
+        self.targetIP = None
+        self.targetPort = None
+        self.silent = None
+        self.width = None
+        self.height = None
+        self.packetQueue = None
 
     def start(self):
         while True:
@@ -66,7 +66,7 @@ class VTS():
 
     def sendPacket(self, packet):
         try:
-            self.sock.sendto(packet, (self.target_ip, self.target_port))
+            self.sock.sendto(packet, (self.targetIP, self.targetPort))
         except:
             print("Failed to send packet")
         return

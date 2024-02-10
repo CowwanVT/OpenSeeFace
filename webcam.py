@@ -7,54 +7,46 @@ import time
 import numpy as np
 import math
 
-def clamp_to_im(pt, w, h):
-    x = pt[0]
-    y = pt[1]
-    if x < 0:
-        x = 0
-    if y < 0:
-        y = 0
-    if x >= w:
-        x = w-1
-    if y >= h:
-        y = h-1
-    return (int(x), int(y+1))
-
-#this is just here for conveience
-def startProcess(frameQueue, faceQueue, fps, targetBrightness, width, height, mirrorInput):
-    webcam = Webcam(frameQueue, faceQueue, fps, targetBrightness, width, height, mirrorInput)
-    webcam.start()
 
 class Webcam():
-    def __init__(self, frameQueue, faceQueue, fps, targetBrightness, width, height, mirrorInput):
+    def __init__(self):
+        self.width = 0
+        self.height = 0
+        self.fps = 0
+        self.targetFrameTime = 0.0
+        self.gamma = 0.7
+        self.preview = False
+        self.mirror = None
+        self.frameQueue = None
+        self.faceQueue = None
+        self.targetBrightness = 0.0
+
+    def initialize(self):
         if os.name == 'nt':
             self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
         else:
             self.cap = cv2.VideoCapture(0)
 
-        if height > 480:
+        if self.height > 480:
             self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
 
-        self.webcamBuffer = 2 #1 causes issues, more than 2 doesn't seem to help
-        self.cap.set(38, self.webcamBuffer)
-        self.cap.set(3, width)
-        self.cap.set(4, height)
-        self.cap.set(cv2.CAP_PROP_FPS, fps)
-        self.targetFrameTime = 1. / (fps - 0.001)
-        self.gamma = 0.7
-        self.mirror = mirrorInput
-        self.frameQueue = frameQueue #outgoing frames from the webcam
-        self.faceQueue = faceQueue  #incoming face data for gamma calculation
-        self.targetBrightness = targetBrightness    #the target average brightness of the face, used in gamma calculations
+        self.cap.set(38, 2)
+        self.cap.set(3, self.width)
+        self.cap.set(4, self.height)
+        self.cap.set(cv2.CAP_PROP_FPS, self.fps)
+        self.targetFrameTime = 1 / (self.fps-0.001)
 
 
     def start(self):
-
+        self.initialize()
         while self.cap.isOpened():
             frameStart= time.perf_counter()
             frame = self.getFrame()
             if frame.ret:
                 self.frameQueue.put(frame)
+                if self.preview:
+                    cv2.imshow("test",cv2.cvtColor(frame.image, cv2.COLOR_RGB2BGR))
+                    cv2.waitKey(1)
             if self.faceQueue.qsize() > 0:
                 self.updateGamma()
             sleepTime = self.targetFrameTime - (time.perf_counter() - frameStart)
@@ -72,8 +64,6 @@ class Webcam():
         frame = Frame(ret, image, self.gamma, cameraStart )
         return frame
 
-    #calculate the ideal gamma based on the brightness of the user's face
-    #kind of winging it with the math, but it's a lot better than calculating based on the whole frame
     def updateGamma(self):
         frame = self.faceQueue.get()
 
@@ -81,7 +71,6 @@ class Webcam():
         averageBrightness = np.mean(crop)/256
         self.gamma = math.log(self.targetBrightness, averageBrightness)
         return
-
 
 class Frame():
     def __init__(self, ret, image, gamma, cameraStart):
