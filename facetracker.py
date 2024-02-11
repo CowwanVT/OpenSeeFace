@@ -126,8 +126,9 @@ try:
             else:
                 print("Cannot maintain framerate")
 
-        peak_time_between = max(peak_time_between, time.perf_counter() -frame_start)
-        total_run_time += time.perf_counter() -frame_start
+        timeSinceLastFrame = time.perf_counter() -frame_start
+        peak_time_between = max(peak_time_between, timeSinceLastFrame)
+        total_run_time += timeSinceLastFrame
 
         #If we don't have something to send to Vtube Studio we don't
         if faceInfo is not None:
@@ -135,8 +136,9 @@ try:
         else:
             print("No data sent to VTS")
 
-        peakTotalLatency = max(peakTotalLatency, (time.perf_counter() - frame.startTime))
-        totalTotalLatency += time.perf_counter() - frame.startTime
+        latency = time.perf_counter() - frame.startTime
+        peakTotalLatency = max(peakTotalLatency, latency)
+        totalTotalLatency += latency
 
 except KeyboardInterrupt:
     if not silent:

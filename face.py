@@ -77,6 +77,7 @@ class FaceInfo():
         [ 0.257990002632141,  0.276080012321472, -0.324570998549461],
         [-0.257990002632141,  0.276080012321472, -0.324570998549461]
         ], np.float32)
+    contourPoints = [0,1,8,15,16,27,28,29,30,31,32,33,34,35]
     def __init__(self, featureType):
         self.featureType = featureType
 
@@ -120,7 +121,7 @@ class FaceInfo():
             self.alive = True
 
     def update_contour(self):
-        self.contour = self.face_3d[[0,1,8,15,16,27,28,29,30,31,32,33,34,35]]
+        self.contour = self.face_3d[self.contourPoints]
 
     def normalize_pts3d(self, pts_3d):
         # Calculate angle using nose

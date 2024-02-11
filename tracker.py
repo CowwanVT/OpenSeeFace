@@ -9,6 +9,18 @@ import eyes
 import landmarks
 import face
 
+def prepareImageForModel(frame):
+    mean = np.float32(np.array([-2.1179, -2.0357, -1.8044]))
+    std = np.float32(np.array([0.0171, 0.0175, 0.0174]))
+    targetimageSize = [224, 224]
+
+    image = cv2.resize(frame, targetimageSize, interpolation=cv2.INTER_CUBIC)
+    image = image * std + mean
+
+    image = np.expand_dims(image, 0)
+    image = np.transpose(image, (0,3,1,2))
+    return image
+
 
 def clamp_to_im(pt, w, h):
     x = pt[0]
@@ -30,28 +42,33 @@ class Models():
         "lm_model2_opt.onnx",
         "lm_model3_opt.onnx",
         "lm_model4_opt.onnx"]
+
+    optimizationLevel = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
     def __init__(self, threads,  model_type=3, detectionThreshold = 0.6):
-        self.model_type = model_type
         self.detectionThreshold = detectionThreshold
-        model = self.models[self.model_type]
-        model_base_path = os.path.join(os.path.dirname(__file__), os.path.join("models"))
+
+        modelBasePath = os.path.join(os.path.dirname(__file__), os.path.join("models"))
         providersList = onnxruntime.capi._pybind_state.get_available_providers()
+        faceDetectModel = os.path.join(modelBasePath,"mnv3_detection_opt.onnx")
+        gazeModel = os.path.join(modelBasePath, "mnv3_gaze32_split_opt.onnx")
+        landmarksModel = os.path.join(modelBasePath, self.models[model_type])
+        optimizationLevel = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
+
         options = onnxruntime.SessionOptions()
         options.inter_op_num_threads = 1
         options.intra_op_num_threads = threads
         options.execution_mode = onnxruntime.ExecutionMode.ORT_SEQUENTIAL
-        options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
+        options.graph_optimization_level = optimizationLevel
         options.log_severity_level = 3
 
-        self.landmarks = onnxruntime.InferenceSession(os.path.join(model_base_path, model), sess_options=options, providers=providersList)
 
-        self.faceDetection = onnxruntime.InferenceSession(os.path.join(model_base_path, "mnv3_detection_opt.onnx"), sess_options=options, providers=providersList)
-
-        self.gazeTracker = onnxruntime.InferenceSession(os.path.join(model_base_path, "mnv3_gaze32_split_opt.onnx"), sess_options=options, providers=providersList)
+        self.landmarks = onnxruntime.InferenceSession(landmarksModel, sess_options=options, providers=providersList)
+        self.faceDetection = onnxruntime.InferenceSession(faceDetectModel, sess_options=options, providers=providersList)
+        self.gazeTracker = onnxruntime.InferenceSession(gazeModel, sess_options=options, providers=providersList)
 
     def detectFaces(self, frame):
 
-        image = self.resizeImage(frame)
+        image = prepareImageForModel(frame)
 
         outputs, maxpool = self.faceDetection.run([], {'input': image})
         outputs = outputs[0]
@@ -63,23 +80,17 @@ class Models():
         faceLocation = np.argmax(outputs[0].flatten())
         x = faceLocation % 56
         y = faceLocation // 56
+
         if outputs[0, y, x] < self.detectionThreshold:
             return None
         r = outputs[1, y, x] * 112.
-        results= (((x * 4) - r, (y * 4) - r, r*2,r*2))
-        results = np.array(results).astype(np.float32)
-        results[[0,2]] *= frame.shape[1] / 224.
-        results[[1,3]] *= frame.shape[0] / 224.
-        return results
+        x = int((x * 4) - r) * (frame.shape[1] / 224.)
+        y = int((y * 4) - r) * (frame.shape[0] / 224.)
+        w = int(r * 2) * (frame.shape[1] / 224.)
+        h = int(r * 2) * (frame.shape[0] / 224.)
 
-    def resizeImage(self, frame):
-        mean = np.float32(np.array([-2.1179, -2.0357, -1.8044]))
-        std = np.float32(np.array([0.0171, 0.0175, 0.0174]))
-        targetimageSize = [224, 224]
-        image = cv2.resize(frame, targetimageSize, interpolation=cv2.INTER_CUBIC) * std + mean
-        image = np.expand_dims(image, 0)
-        image = np.transpose(image, (0,3,1,2))
-        return image
+        results= [x,y,w,h]
+        return results
 
     def detectLandmarks(self, crop, crop_info):
 
@@ -89,9 +100,6 @@ class Models():
 
 
 class Tracker():
-    targetimageSize = [224, 224]
-    std = np.float32(np.array([0.0171, 0.0175, 0.0174]))
-    mean = np.float32(np.array([-2.1179, -2.0357, -1.8044]))
     def __init__(self, args):
 
         self.EyeTracker = eyes.EyeTracker()
@@ -100,12 +108,6 @@ class Tracker():
         self.threshold = args.threshold
         self.face = None
         self.face_info = face.FaceInfo(args.feature_type)
-
-    #scales cropped frame before sending to landmarks
-    def preprocess(self, im):
-        im = cv2.resize(im ,self.targetimageSize , interpolation=cv2.INTER_CUBIC) * self.std + self.mean
-        im = np.expand_dims(im, 0)
-        return np.transpose(im, (0,3,1,2))
 
     def cropFace(self, frame):
         duration_pp = 0.0
@@ -122,7 +124,7 @@ class Tracker():
             return (None, [], duration_pp )
 
         start_pp = time.perf_counter()
-        crop = self.preprocess(im)
+        crop = prepareImageForModel(im)
         duration_pp += 1000 * (time.perf_counter() - start_pp)
 
         scale_x = im.shape[1] / 224.
