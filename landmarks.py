@@ -44,13 +44,6 @@ def landmarks(tensor, crop_info):
     lms[np.isnan(lms).any(axis=1)] = np.array([0.,0.,0.], dtype=np.float32)
     return (np.average(t_conf), lms)
 
-def run( models, crop, crop_info):
-
-    output = models.landmarks.run([], {"input": crop})[0][0]
-    confidence, lms = landmarks(output, crop_info)
-    return (confidence, lms)
-
-
 def estimate_depth( face_info, width, height):
     camera = np.array([[width, 0, width/2], [0, width, height/2], [0, 0, 1]], np.float32)
     inverse_camera = np.linalg.inv(camera)

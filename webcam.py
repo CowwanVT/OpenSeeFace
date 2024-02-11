@@ -35,7 +35,9 @@ class Webcam():
         self.cap.set(4, self.height)
         self.cap.set(cv2.CAP_PROP_FPS, self.fps)
         self.targetFrameTime = 1 / (self.fps-0.001)
-
+        time.sleep(0.1)
+        self.cap.read()
+        time.sleep(0.1)
 
     def start(self):
         self.initialize()
@@ -121,12 +123,12 @@ class Frame():
 
 
     def clampX(self, x):
-        x = max(x, 1)
+        x = max(x, 0)
         x = min (x, self.width - 1)
         return int(x)
 
     def clampY(self, y):
-        y = max(y, 1)
+        y = max(y, 0)
         y = min (y, self.width - 1)
         return int(y)
 

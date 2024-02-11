@@ -1,4 +1,5 @@
 import os
+os.environ["OMP_NUM_THREADS"] = str(1)
 import numpy as np
 import onnxruntime
 import cv2
@@ -20,17 +21,15 @@ def clamp_to_im(pt, w, h):
         x = w-1
     if y >= h:
         y = h-1
-    return (int(x), int(y+1))
+    return (int(x), int(y))
 
 class Models():
-
     models = [
         "lm_model0_opt.onnx",
         "lm_model1_opt.onnx",
         "lm_model2_opt.onnx",
         "lm_model3_opt.onnx",
         "lm_model4_opt.onnx"]
-
     def __init__(self, threads,  model_type=3, detectionThreshold = 0.6):
         self.model_type = model_type
         self.detectionThreshold = detectionThreshold
@@ -50,8 +49,6 @@ class Models():
 
         self.gazeTracker = onnxruntime.InferenceSession(os.path.join(model_base_path, "mnv3_gaze32_split_opt.onnx"), sess_options=options, providers=providersList)
 
-
-
     def detectFaces(self, frame):
 
         image = self.resizeImage(frame)
@@ -62,6 +59,7 @@ class Models():
         mask = outputs[0] == maxpool[0]
         mask2 = outputs[1] > 0.15
         outputs[0] = outputs[0] * mask.astype(int) * mask2.astype(int)
+
         faceLocation = np.argmax(outputs[0].flatten())
         x = faceLocation % 56
         y = faceLocation // 56
@@ -72,7 +70,6 @@ class Models():
         results = np.array(results).astype(np.float32)
         results[[0,2]] *= frame.shape[1] / 224.
         results[[1,3]] *= frame.shape[0] / 224.
-
         return results
 
     def resizeImage(self, frame):
@@ -84,22 +81,25 @@ class Models():
         image = np.transpose(image, (0,3,1,2))
         return image
 
+    def detectLandmarks(self, crop, crop_info):
+
+        output = self.landmarks.run([], {"input": crop})[0][0]
+        confidence, lms = landmarks.landmarks(output, crop_info)
+        return (confidence, lms)
+
+
 class Tracker():
     targetimageSize = [224, 224]
     std = np.float32(np.array([0.0171, 0.0175, 0.0174]))
     mean = np.float32(np.array([-2.1179, -2.0357, -1.8044]))
-    def __init__(self, width, height, featureType, threads, model_type=3, detection_threshold=0.6, threshold=0.6, silent=False):
+    def __init__(self, args):
 
         self.EyeTracker = eyes.EyeTracker()
-        self.model = Models(threads, model_type = model_type, detectionThreshold = detection_threshold)
+        self.model = Models(args.threads, model_type = args.model, detectionThreshold = args.detection_threshold)
 
-        # Image normalization constants
-        self.width = width
-        self.height = height
-
-        self.threshold = threshold
+        self.threshold = args.threshold
         self.face = None
-        self.face_info = face.FaceInfo(featureType)
+        self.face_info = face.FaceInfo(args.feature_type)
 
     #scales cropped frame before sending to landmarks
     def preprocess(self, im):
@@ -111,10 +111,10 @@ class Tracker():
         duration_pp = 0.0
         x,y,w,h = self.face
 
-        crop_x1 = x - (w * 0.1)
-        crop_y1 = y - (h * 0.125)
-        crop_x2 = x + w + (w * 0.1)
-        crop_y2 = y + h + (h * 0.125)
+        crop_x1 = int( x - (w * 0.1))
+        crop_y1 = int( y - (h * 0.125))
+        crop_x2 = int( x + w + (w * 0.1))
+        crop_y2 = int( y + h + (h * 0.125))
 
         im = frame.crop(crop_x1, crop_x2, crop_y1, crop_y2)
 
@@ -151,6 +151,7 @@ class Tracker():
             if self.face is None:
                 return self.early_exit("No faces found", start)
 
+        self.face = np.array(self.face, dtype = np.int32)
         crop, crop_info, duration_pp = self.cropFace(frame)
 
         #Early exit if crop fails, If the crop fails there's nothing to track
@@ -158,7 +159,7 @@ class Tracker():
             return self.early_exit("No valid crops", start)
         start_model = time.perf_counter()
 
-        confidence, lms = landmarks.run(self.model, crop, crop_info)
+        confidence, lms = self.model.detectLandmarks(crop, crop_info)
         #Early exit if below confidence threshold
         if confidence < self.threshold:
             return self.early_exit("Confidence below threshold", start)
@@ -172,7 +173,7 @@ class Tracker():
         face_info = self.face_info
 
         if face_info.alive:
-            face_info.success, face_info.quaternion, face_info.euler, face_info.pnp_error, face_info.pts_3d, face_info.lms = landmarks.estimate_depth(face_info, self.width, self.height)
+            face_info.success, face_info.quaternion, face_info.euler, face_info.pnp_error, face_info.pts_3d, face_info.lms = landmarks.estimate_depth(face_info, frame.width, frame.height)
 
             if face_info.success:
                 face_info.adjust_3d()

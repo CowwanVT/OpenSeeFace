@@ -7,14 +7,15 @@ def clamp_to_im(pt, w, h):
     x = pt[0]
     y = pt[1]
     if x < 0:
-        x = 1
+        x = 0
     if y < 0:
-        y = 1
+        y = 0
     if x >= w:
-        x = w - 1
+        x = w-1
     if y >= h:
-        y = h - 1
+        y = h-1
     return (int(x), int(y))
+
 
 def rotate(origin, point, a):
     x, y = point - origin
@@ -78,9 +79,12 @@ class Eye():
     def corners_to_eye(self, w, h):
         c1 = np.array(self.outerPoint)
         c2 = np.array(self.innerPoint)
-        a = math.atan2(*(c2 - c1)[::-1]) % (2*math.pi)
+
+        a = math.atan2(*(c2 - c1)[::-1])
+        a = a % (2*math.pi)
         c2 = rotate(c1, c2, a)
         center = (c1 + c2) / 2.0
+
         radius = np.linalg.norm(c1 - c2)
         radius = [radius * 0.7, radius * 0.6]
         upper_left = clamp_to_im(center - radius, w, h)
@@ -178,14 +182,11 @@ class EyeTracker():
         x1, y1 = lms.min(0)
         x2, y2 = lms.max(0)
 
-        w = frame.width
-        h = frame.height
         x1 = frame.clampX(x1)
         y1 = frame.clampY(y1)
 
         self.offset = np.array((x1, y1))
         lms = (lms[:, 0:2] - self.offset).astype(int)
         image = frame.crop(x1, x2, y1, y2)
-
 
         return lms, image

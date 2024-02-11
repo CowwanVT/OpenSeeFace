@@ -13,11 +13,12 @@ class VTS():
         self.silent = None
         self.width = None
         self.height = None
-        self.packetQueue = None
+        self.faceInfoQueue = None
 
     def start(self):
         while True:
-            packet = self.packetQueue.get()
+            faceInfo = self.faceInfoQueue.get()
+            packet = self.preparePacket(faceInfo)
             self.sendPacket(packet)
 
     def preparePacket(self, face):
@@ -49,7 +50,7 @@ class VTS():
         packet.extend(bytearray(struct.pack("f", face.translation[2])))
         for (_,_,c) in face.lms:
             packet.extend(bytearray(struct.pack("f", c)))
-        for pt_num, (x,y,_) in enumerate(face.lms):
+        for _, (x,y,_) in enumerate(face.lms):
             packet.extend(bytearray(struct.pack("f", y)))
             packet.extend(bytearray(struct.pack("f", x)))
         for (x,y,z) in face.pts_3d:
@@ -70,3 +71,6 @@ class VTS():
         except:
             print("Failed to send packet")
         return
+
+
+

@@ -1,5 +1,4 @@
 import os
-os.environ["OMP_NUM_THREADS"] = str(1)
 import argparse
 import traceback
 import threading
@@ -8,7 +7,6 @@ import time
 from tracker import Tracker
 import webcam
 import vts
-import preview
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-i", "--ip", help="Set IP address for sending tracking data", default="127.0.0.1")
@@ -36,17 +34,15 @@ args = parser.parse_args()
 fps = args.fps
 height = args.height
 width = args.width
-featureType = args.feature_type
 visualizeFlag = (args.visualize == 1)
 lowLatency = (args.low_latency == 1)
-threads = args.threads
 silent = (args.silent == 1)
 
 if lowLatency:
     target_duration = 0.75 / fps
     frameQueueSize = 1
 elif height > 480:
-    target_duration = 1 / (fps - 0.001) #idk if this does any good, but it might keep me from waiting on the webcam
+    target_duration = 1 / (fps - 0.001)
     frameQueueSize = 2
 else:
     frameQueueSize = 1
@@ -55,22 +51,19 @@ else:
 
 frameQueue = queue.Queue(maxsize=frameQueueSize)
 faceQueue = queue.Queue(maxsize=1)
-packetQueue = queue.Queue()
+faceInfoQueue = queue.Queue()
 
-#I want to decouple the requests so they don't block anything else if they're slow
 VTS = vts.VTS()
 VTS.targetIP = args.ip
 VTS.targetPort = args.port
 VTS.silent = silent
 VTS.width = args.width
 VTS.height = args.height
-VTS.packetQueue = packetQueue
-
+VTS.faceInfoQueue = faceInfoQueue
 
 packetSenderThread = threading.Thread(target = VTS.start)
 packetSenderThread.daemon = True
 packetSenderThread.start()
-
 
 Webcam = webcam.Webcam()
 Webcam.width = args.width
@@ -82,17 +75,9 @@ Webcam.preview = (args.preview == 1)
 Webcam.frameQueue = frameQueue
 Webcam.faceQueue = faceQueue
 
-
 webcamThread = threading.Thread(target=Webcam.start)
 webcamThread.daemon = True
 webcamThread.start()
-
-if visualizeFlag:
-    previewFrameQueue = queue.Queue(maxsize=1)
-    previewThread = threading.Thread(target=preview.startProcess, args = (previewFrameQueue, target_duration,))
-    previewThread.daemon = True
-    previewThread.start()
-
 
 frame_count = 0
 peak_frame_time=0.0
@@ -105,32 +90,25 @@ total_camera_latency = 0.0
 peakTotalLatency = 0.0
 totalTotalLatency = 0.0
 sleepTime = 0.0
-tracker = Tracker(width, height, featureType, threads, threshold=args.threshold, silent=silent, model_type=args.model, detection_threshold=args.detection_threshold)
+
+tracker = Tracker(args)
 
 #don't start until the webcam is ready, then give it a little more time to fill it's buffer
 frameQueue.get()
-time.sleep(0.1)
-
-face = None
+time.sleep(target_duration)
 
 try:
     while True:
-        packet = None
         frame_start = time.perf_counter()
         frame_count += 1
         frame = frameQueue.get()
         frame_get = time.perf_counter()
         #If I don't wait a few frames to start tracking I get wild peak frame times, like 500ms
-        if frame_count > 5:
-            peak_camera_latency = max(frame.cameraLatency, peak_camera_latency)
-            total_camera_latency+= frame.cameraLatency
+
+        peak_camera_latency = max(frame.cameraLatency, peak_camera_latency)
+        total_camera_latency+= frame.cameraLatency
 
         faceInfo, frame.face  = tracker.predict(frame)
-
-        if faceInfo is not None:
-            packet = VTS.preparePacket(faceInfo)
-            if visualizeFlag:
-                preview.visualize(frame.image, faceInfo, previewFrameQueue, face_center, face_radius)
 
         if frame.face is not None:
             if faceQueue.qsize() < 1:
@@ -152,13 +130,13 @@ try:
         total_run_time += time.perf_counter() -frame_start
 
         #If we don't have something to send to Vtube Studio we don't
-        if(packet is not None):
-            packetQueue.put(packet)
+        if faceInfo is not None:
+            faceInfoQueue.put(faceInfo)
         else:
             print("No data sent to VTS")
-        if frame_count > 5:
-            peakTotalLatency = max(peakTotalLatency, (time.perf_counter() - frame.startTime))
-            totalTotalLatency += time.perf_counter() - frame.startTime
+
+        peakTotalLatency = max(peakTotalLatency, (time.perf_counter() - frame.startTime))
+        totalTotalLatency += time.perf_counter() - frame.startTime
 
 except KeyboardInterrupt:
     if not silent:
@@ -169,7 +147,7 @@ except KeyboardInterrupt:
 
 #time from getting the frame from the webcam to sending face data to VTS
 print(f"Peak latency: {(peakTotalLatency*1000):.3f}ms")
-print(f"Average latency: {(totalTotalLatency*1000/(frame_count-5)):.3f}ms")
+print(f"Average latency: {(totalTotalLatency*1000/(frame_count)):.3f}ms")
 
 #time taken to get frame from webcam
 print(f"Peak camera latency: {(peak_camera_latency*1000):.3f}ms")
