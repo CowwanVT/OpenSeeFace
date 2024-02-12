@@ -48,11 +48,13 @@ else:
     frameQueueSize = 1
     target_duration = 1 / (fps - 0.001)
 
+#---Setting up worker threads---
 
 frameQueue = queue.Queue(maxsize=frameQueueSize)
 faceQueue = queue.Queue(maxsize=1)
 faceInfoQueue = queue.Queue()
 
+#this thread sends requests to Vtube Studio
 VTS = vts.VTS()
 VTS.targetIP = args.ip
 VTS.targetPort = args.port
@@ -65,6 +67,7 @@ packetSenderThread = threading.Thread(target = VTS.start)
 packetSenderThread.daemon = True
 packetSenderThread.start()
 
+#this thread gets images from the webcam
 Webcam = webcam.Webcam()
 Webcam.width = args.width
 Webcam.height = args.height

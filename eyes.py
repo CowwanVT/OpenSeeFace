@@ -106,7 +106,10 @@ class Eye():
     def calculateEye(self):
 
         e_x, e_y, scale, reference, angles = self.info
-        confidenceThreshold = self.averageEyeConfidence - 2 * self.standardDeviation
+        #3 standard deviations should have 0.3% of eye movements rejected
+        #which is a very small number
+        #but those are the ones that cause wild eye movements
+        confidenceThreshold = self.averageEyeConfidence - 3 * self.standardDeviation
 
         m = self.results[0].argmax()
         x = m // 8
@@ -122,8 +125,7 @@ class Eye():
         off_y = math.log(p/(1-p))
         eye_y = 4.0 * (y + off_y)
 
-        #I'm proud of this
-        #if eye movements are below 2 standard deviations of the average the movement rejected
+        #if eye movements are below 3 standard deviations of the average the movement rejected
         #the eyes are handled independenly because my testing showed that one eye tended to have a higher condifence than the other
         if self.results[0][x,y] < confidenceThreshold:
             eye_y = self.lastEyeState[0]
