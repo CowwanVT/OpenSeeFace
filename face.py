@@ -80,9 +80,6 @@ class FaceInfo():
     contourPoints = [0,1,8,15,16,27,28,29,30,31,32,33,34,35]
     def __init__(self, featureType):
         self.featureType = featureType
-
-
-
         self.reset()
         self.alive = False
         self.coord = None
@@ -95,8 +92,8 @@ class FaceInfo():
         self.conf = None
         self.lms = None
         self.eye_state = None
-        self.rotation = np.array([0.0, 0.0, 0.0], np.float32)
-        self.translation = np.array([0.0, 0.0, 0.0], np.float32)
+        self.rotation = np.array([0.0, 0.0, 0.0])
+        self.translation = np.array([0.0, 0.0, 0.0])
         self.success = None
         self.quaternion = None
         self.euler = None
@@ -109,8 +106,8 @@ class FaceInfo():
             self.features = emilianaFeatureExtractor.FeatureExtractor()
 
         self.current_features = {}
-        self.contour = np.zeros((21,3))
-        self.update_contour()
+        self.contour = self.face_3d[self.contourPoints]
+
 
     def update(self, result, coord):
         if result is None:
@@ -119,9 +116,6 @@ class FaceInfo():
             self.conf, (self.lms, self.eye_state) = result
             self.coord = coord
             self.alive = True
-
-    def update_contour(self):
-        self.contour = self.face_3d[self.contourPoints]
 
     def normalize_pts3d(self, pts_3d):
         # Calculate angle using nose

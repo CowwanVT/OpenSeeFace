@@ -21,7 +21,6 @@ def prepareImageForModel(frame):
     image = np.transpose(image, (0,3,1,2))
     return image
 
-
 def clamp_to_im(pt, w, h):
     x = pt[0]
     y = pt[1]
@@ -44,23 +43,22 @@ class Models():
         "lm_model4_opt.onnx"]
 
     optimizationLevel = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
-    def __init__(self, threads,  model_type=3, detectionThreshold = 0.6):
-        self.detectionThreshold = detectionThreshold
+    def __init__(self, args):
+        self.detectionThreshold = args.detection_threshold
 
         modelBasePath = os.path.join(os.path.dirname(__file__), os.path.join("models"))
         providersList = onnxruntime.capi._pybind_state.get_available_providers()
         faceDetectModel = os.path.join(modelBasePath,"mnv3_detection_opt.onnx")
         gazeModel = os.path.join(modelBasePath, "mnv3_gaze32_split_opt.onnx")
-        landmarksModel = os.path.join(modelBasePath, self.models[model_type])
+        landmarksModel = os.path.join(modelBasePath, self.models[args.model])
         optimizationLevel = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
 
         options = onnxruntime.SessionOptions()
         options.inter_op_num_threads = 1
-        options.intra_op_num_threads = threads
+        options.intra_op_num_threads =  args.threads
         options.execution_mode = onnxruntime.ExecutionMode.ORT_SEQUENTIAL
         options.graph_optimization_level = optimizationLevel
         options.log_severity_level = 3
-
 
         self.landmarks = onnxruntime.InferenceSession(landmarksModel, sess_options=options, providers=providersList)
         self.faceDetection = onnxruntime.InferenceSession(faceDetectModel, sess_options=options, providers=providersList)
@@ -88,9 +86,7 @@ class Models():
         y = int((y * 4) - r) * (frame.shape[0] / 224.)
         w = int(r * 2) * (frame.shape[1] / 224.)
         h = int(r * 2) * (frame.shape[0] / 224.)
-
-        results= [x,y,w,h]
-        return results
+        return [x,y,w,h]
 
     def detectLandmarks(self, crop, crop_info):
 
@@ -98,12 +94,11 @@ class Models():
         confidence, lms = landmarks.landmarks(output, crop_info)
         return (confidence, lms)
 
-
 class Tracker():
     def __init__(self, args):
 
         self.EyeTracker = eyes.EyeTracker()
-        self.model = Models(args.threads, model_type = args.model, detectionThreshold = args.detection_threshold)
+        self.model = Models(args)
 
         self.threshold = args.threshold
         self.face = None
@@ -119,7 +114,6 @@ class Tracker():
         crop_y2 = int( y + h + (h * 0.125))
 
         im = frame.crop(crop_x1, crop_x2, crop_y1, crop_y2)
-
         if im.shape[0] < 64 or im.shape[1] < 64:
             return (None, [], duration_pp )
 
@@ -175,15 +169,14 @@ class Tracker():
         face_info = self.face_info
 
         if face_info.alive:
-            face_info.success, face_info.quaternion, face_info.euler, face_info.pnp_error, face_info.pts_3d, face_info.lms = landmarks.estimate_depth(face_info, frame.width, frame.height)
+            face_info = landmarks.estimate_depth(face_info, frame.width, frame.height)
 
             if face_info.success:
-                face_info.adjust_3d()
                 lms = face_info.lms[:, 0:2]
                 y1, x1 = lms[0:66].min(0)
                 y2, x2 = lms[0:66].max(0)
                 self.face = [x1, y1, x2 - x1, y2 - y1]
-                duration_pnp += 1000 * (time.perf_counter() - start_pnp)
+                duration_pnp = 1000 * (time.perf_counter() - start_pnp)
                 duration = (time.perf_counter() - start) * 1000
                 print(f"Took {duration:.2f}ms (detect: {duration_fd:.2f}ms, crop: {duration_pp:.2f}ms, track: {duration_model:.2f}ms, 3D points: {duration_pnp:.2f}ms)")
                 return face_info, self.face

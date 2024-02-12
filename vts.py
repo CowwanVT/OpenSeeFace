@@ -21,6 +21,9 @@ class VTS():
             packet = self.preparePacket(faceInfo)
             self.sendPacket(packet)
 
+
+
+
     def preparePacket(self, face):
         packet = bytearray()
         if face.eye_blink is None:
@@ -50,7 +53,7 @@ class VTS():
         packet.extend(bytearray(struct.pack("f", face.translation[2])))
         for (_,_,c) in face.lms:
             packet.extend(bytearray(struct.pack("f", c)))
-        for _, (x,y,_) in enumerate(face.lms):
+        for pt_num, (x,y,_) in enumerate(face.lms):
             packet.extend(bytearray(struct.pack("f", y)))
             packet.extend(bytearray(struct.pack("f", x)))
         for (x,y,z) in face.pts_3d:
