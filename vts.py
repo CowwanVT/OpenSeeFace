@@ -4,7 +4,22 @@ import struct
 
 class VTS():
 
-    features = ["eye_l", "eye_r", "eyebrow_steepness_l", "eyebrow_updown_l", "eyebrow_quirk_l", "eyebrow_steepness_r", "eyebrow_updown_r", "eyebrow_quirk_r", "mouth_corner_updown_l", "mouth_corner_inout_l", "mouth_corner_updown_r", "mouth_corner_inout_r", "mouth_open", "mouth_wide"]
+    features = [
+        "eye_l",
+        "eye_r",
+        "eyebrow_steepness_l",
+        "eyebrow_updown_l",
+        "eyebrow_quirk_l",
+        "eyebrow_steepness_r",
+        "eyebrow_updown_r",
+        "eyebrow_quirk_r",
+        "mouth_corner_updown_l",
+        "mouth_corner_inout_l",
+        "mouth_corner_updown_r",
+        "mouth_corner_inout_r",
+        "mouth_open",
+        "mouth_wide"]
+
     def __init__(self):
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -53,7 +68,7 @@ class VTS():
         packet.extend(bytearray(struct.pack("f", face.translation[2])))
         for (_,_,c) in face.lms:
             packet.extend(bytearray(struct.pack("f", c)))
-        for pt_num, (x,y,_) in enumerate(face.lms):
+        for _, (x,y,_) in enumerate(face.lms):
             packet.extend(bytearray(struct.pack("f", y)))
             packet.extend(bytearray(struct.pack("f", x)))
         for (x,y,z) in face.pts_3d:

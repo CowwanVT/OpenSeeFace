@@ -47,7 +47,7 @@ def landmarks(tensor, crop_info):
     return (np.average(t_conf), lms)
 
 def estimate_depth( face, width, height):
-    camera = np.array([[width, 0, width/2], [0, width, height/2], [0, 0, 1]], np.float32)
+    camera = np.array([[width, 0, width/2], [0, width, height/2], [0, 0, 1]])
     inverse_camera = np.linalg.inv(camera)
     lms = np.concatenate((face.lms, np.array(face.eye_state)[0:2,1:4]), 0)
     image_pts = lms[face.contourPoints, 0:2]
@@ -67,18 +67,55 @@ def estimate_depth( face, width, height):
         return False, np.zeros(4), np.zeros(3), 99999., pts_3d, lms
 
     rmat, _ = cv2.Rodrigues(face.rotation)
-    inverse_rotation = np.linalg.inv(rmat)
+
     t_reference = face.face_3d.dot(rmat.transpose())
     t_reference = t_reference + face.translation
     t_reference = t_reference.dot(camera.transpose())
+
     t_depth = t_reference[:, 2]
     t_depth[t_depth == 0] = 0.000001
     t_depth_e = np.expand_dims(t_depth[:],1)
     t_reference = t_reference[:] / t_depth_e
+
+    inverse_rotation = np.linalg.inv(rmat)
+
     pts_3d[0:66] = np.stack([lms[0:66,0], lms[0:66,1], np.ones((66,))], 1)
     pts_3d[0:66] = pts_3d[0:66] * t_depth_e[0:66]
+    pts_3d[0:66] = pts_3d[0:66].dot(inverse_camera.transpose())
+    pts_3d[0:66] = pts_3d[0:66] - face.translation
+    pts_3d[0:66] = pts_3d[0:66].dot(inverse_rotation.transpose())
 
-    pts_3d[0:66] = (pts_3d[0:66].dot(inverse_camera.transpose()) - face.translation).dot(inverse_rotation.transpose())
+    d1 = np.linalg.norm(lms[66,0:2] - lms[36,0:2])
+    d2 = np.linalg.norm(lms[66,0:2] - lms[39,0:2])
+    d = d1 + d2
+    pt = (pts_3d[36] * d1 + pts_3d[39] * d2) / d
+
+    reference = rmat.dot(pt)
+    reference = reference + face.translation
+    reference = camera.dot(reference)
+    depth = reference[2]
+
+    pt_3d = [lms[66][0] * depth, lms[66][1] * depth, depth]
+    pt_3d = inverse_camera.dot(pt_3d)
+    pt_3d = pt_3d - face.translation
+    pt_3d = inverse_rotation.dot(pt_3d)
+    pts_3d[66,:] = pt_3d[:]
+
+    d1 = np.linalg.norm(lms[67,0:2] - lms[42,0:2])
+    d2 = np.linalg.norm(lms[67,0:2] - lms[45,0:2])
+    d = d1 + d2
+    pt = (pts_3d[42] * d1 + pts_3d[45] * d2) / d
+
+    reference = rmat.dot(pt)
+    reference = reference + face.translation
+    reference = camera.dot(reference)
+    depth = reference[2]
+
+    pt_3d = [lms[67][0] * depth, lms[67][1] * depth, depth]
+    pt_3d = inverse_camera.dot(pt_3d)
+    pt_3d = pt_3d - face.translation
+    pt_3d = inverse_rotation.dot(pt_3d)
+    pts_3d[67,:] = pt_3d[:]
 
     # Right eyeball
     # Eyeballs have an average diameter of 12.5mm
@@ -97,41 +134,14 @@ def estimate_depth( face, width, height):
     eye_center[2]-=depth
     pts_3d[69] = eye_center
 
-    d1 = np.linalg.norm(lms[66,0:2] - lms[36,0:2])
-    d2 = np.linalg.norm(lms[66,0:2] - lms[39,0:2])
-    d = d1 + d2
-    pt = (pts_3d[36] * d1 + pts_3d[39] * d2) / d
+    pts_3d[np.isnan(pts_3d).any(axis=1)] = np.array([0.,0.,0.])
 
-    reference = rmat.dot(pt)
-    reference = reference + face.translation
-    reference = camera.dot(reference)
-    depth = reference[2]
-    pt_3d = [lms[66][0] * depth, lms[66][1] * depth, depth]
-    pt_3d = inverse_camera.dot(pt_3d)
-    pt_3d = pt_3d - face.translation
-    pt_3d = inverse_rotation.dot(pt_3d)
-    pts_3d[66,:] = pt_3d[:]
-
-    d1 = np.linalg.norm(lms[67,0:2] - lms[42,0:2])
-    d2 = np.linalg.norm(lms[67,0:2] - lms[45,0:2])
-    d = d1 + d2
-    pt = (pts_3d[42] * d1 + pts_3d[45] * d2) / d
-
-    reference = rmat.dot(pt)
-    reference = reference + face.translation
-    reference = camera.dot(reference)
-    depth = reference[2]
-    pt_3d = [lms[67][0] * depth, lms[67][1] * depth, depth]
-    pt_3d = inverse_camera.dot(pt_3d)
-    pt_3d = pt_3d - face.translation
-    pt_3d = inverse_rotation.dot(pt_3d)
-    pts_3d[67,:] = pt_3d[:]
-
-    pts_3d[np.isnan(pts_3d).any(axis=1)] = np.array([0.,0.,0.], dtype=np.float32)
     pnp_error = np.power(lms[0:17,0:2] - t_reference[0:17,0:2], 2).sum()
     pnp_error += np.power(lms[30,0:2] - t_reference[30,0:2], 2).sum()
+
     if np.isnan(pnp_error):
         pnp_error = 9999999.
+
     pnp_error = math.sqrt(pnp_error / (2.0 * image_pts.shape[0]))
     if pnp_error > 300:
         face.fail_count += 1

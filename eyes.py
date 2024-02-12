@@ -19,15 +19,24 @@ def clamp_to_im(pt, w, h):
 
 def rotate(origin, point, a):
     x, y = point - origin
-    qx = origin[0] + math.cos(-a) * x - math.sin(-a) * y
-    qy = origin[1] + math.sin(-a) * x + math.cos(-a) * y
+    a = -a
+
+    qx = math.cos(a) * x - math.sin(a) * y
+
+    qy = math.sin(a) * x + math.cos(a) * y
+
+    qx+= origin[0]
+    qy+= origin[1]
+
     return qx, qy
 
 def clamp (value, minimum, maxium):
     return max(min(value,maxium),minimum)
 
 def rotate_image(image, a, center): #twice per frame, 0.2ms - 0.25ms each, improved to 0.15ms - 0.25ms
-    M = cv2.getRotationMatrix2D((float(center[0]), float(center[1])), math.degrees(a), 1.0)
+    center = (float(center[0]), float(center[1]))
+    a = math.degrees(a)
+    M = cv2.getRotationMatrix2D(center,a, 1.0)
     (h, w) = image.shape[:2]
     image = cv2.warpAffine(image, M, (w, h), flags = cv2.INTER_CUBIC)
     return image
@@ -53,7 +62,8 @@ class Eye():
     def prepare_eye(self, faceFrame):
         self.state = [1.,0.,0.,0.]
         im = faceFrame
-        (x1, y1), (x2, y2), a = self.corners_to_eye( im.shape[1], im.shape[0])
+        (x1, y1), (x2, y2), a = self.corners_to_eye(im.shape)
+
         #rotating an image is expensive and reduces clarity
         #so I just don't if it's a relatively small angle
         if math.degrees(a) > 7.5 and math.degrees(a) < 352.5:
@@ -76,7 +86,9 @@ class Eye():
         self.info = [x1, y1, scale, self.outerPoint, a]
         return
 
-    def corners_to_eye(self, w, h):
+    def corners_to_eye(self, shape):
+
+        h, w, _ = shape
         c1 = np.array(self.outerPoint)
         c2 = np.array(self.innerPoint)
 
@@ -111,14 +123,11 @@ class Eye():
         eye_y = 4.0 * (y + off_y)
 
         #I'm proud of this
-        #if eye movements are below 2 standard deviations of the average the movement is severely limited
+        #if eye movements are below 2 standard deviations of the average the movement rejected
         #the eyes are handled independenly because my testing showed that one eye tended to have a higher condifence than the other
-        limit = max((self.results[0][x,y]- 0.5)*(2/confidenceThreshold),0)
         if self.results[0][x,y] < confidenceThreshold:
-            Delta = eye_y - self.lastEyeState[0]
-            eye_y = self.lastEyeState[0] + clamp(Delta, -limit, limit)
-            Delta = eye_x - self.lastEyeState[1]
-            eye_x = self.lastEyeState[1] + clamp(Delta, -limit, limit)
+            eye_y = self.lastEyeState[0]
+            eye_x = self.lastEyeState[1]
 
         self.lastEyeState = [eye_y, eye_x]
 
@@ -136,13 +145,19 @@ class Eye():
         return
 
     def calculateStandardDeviation(self):
+        #calculates a *vague* approximation of the standard deviation of eye condivences
+        #allows me to reject a very small portion of eye movements while preventing errant eye movements
         self.eye_tracking_frames+=1
 
         avgRatio = 1/self.eye_tracking_frames
-        self.averageEyeConfidence = (self.averageEyeConfidence*(1-avgRatio))+ (self.condifence * avgRatio)
 
-        avgRatio = 1/(self.eye_tracking_frames + 1)
-        self.averageEyeConfidenceVariance  = pow(((self.condifence - self.averageEyeConfidence) * avgRatio) + (self.averageEyeConfidenceVariance  * (1-avgRatio)), 2)
+        self.averageEyeConfidence *= (1-avgRatio)
+        self.averageEyeConfidence += self.condifence * avgRatio
+
+        self.averageEyeConfidenceVariance *= 1-avgRatio
+
+        self.averageEyeConfidenceVariance += pow(self.condifence - self.averageEyeConfidence, 2) * avgRatio
+
         self.standardDeviation = math.sqrt(self.averageEyeConfidenceVariance)
 
 class EyeTracker():

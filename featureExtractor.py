@@ -13,9 +13,6 @@ def rotate(origin, point, a):
 #This class determines how various parameters operate, I'l do my best to document it here so you can customize them
 #It's not a replacement for vbridger, but it'll get you some level of control beyond what Vtube Studio offers
 
-
-
-
 class FeatureExtractor():
     def __init__(self):
         #These define how the normalization in feature.py works
@@ -57,9 +54,6 @@ class FeatureExtractor():
         self.mouth_corner_updown_l = feature.Feature(curve = 2 )
         self.mouth_corner_updown_r = feature.Feature()
         self.mouth_open = feature.Feature(scaleType = 2, curve = 1.5)
-
-
-
 
     #This is the arbitrary messy math portion of how parameters work
     #most of the stuff here was set by trial and error , so it's kinda weird
