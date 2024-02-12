@@ -44,9 +44,7 @@ class VTS():
         if face.eye_blink is None:
             face.eye_blink = [1, 1]
         if not self.silent:
-            right_state = "O" if face.eye_blink[0] > 0.2 else "-"
-            left_state = "O" if face.eye_blink[1] > 0.2 else "-"
-            print(f"Confidence: {face.conf:.4f} / 3D fitting error: {face.pnp_error:.4f} / Eyes: {left_state}, {right_state}")
+            print(f"Confidence: {face.conf:.4f} / 3D fitting error: {face.pnp_error:.4f}")
         now = time.time()
         packet.extend(bytearray(struct.pack("d", now)))
         packet.extend(bytearray(struct.pack("i", 0)))

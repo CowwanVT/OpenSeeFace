@@ -86,7 +86,8 @@ class Models():
         y = int((y * 4) - r) * (frame.shape[0] / 224.)
         w = int(r * 2) * (frame.shape[1] / 224.)
         h = int(r * 2) * (frame.shape[0] / 224.)
-        return [x,y,w,h]
+        results = np.array([x,y,w,h], dtype = np.int32)
+        return results
 
     def detectLandmarks(self, crop, crop_info):
 
@@ -143,43 +144,45 @@ class Tracker():
         if self.face is None:
             start_fd = time.perf_counter()
             self.face =  self.model.detectFaces(frame.image)
+
             duration_fd = 1000 * (time.perf_counter() - start_fd)
+
             if self.face is None:
                 return self.early_exit("No faces found", start)
 
-        self.face = np.array(self.face, dtype = np.int32)
         crop, crop_info, duration_pp = self.cropFace(frame)
 
-        #Early exit if crop fails, If the crop fails there's nothing to track
         if  crop is None:
             return self.early_exit("No valid crops", start)
+
         start_model = time.perf_counter()
 
         confidence, lms = self.model.detectLandmarks(crop, crop_info)
-        #Early exit if below confidence threshold
         if confidence < self.threshold:
             return self.early_exit("Confidence below threshold", start)
 
         eye_state = self.EyeTracker.get_eye_state(self.model, frame, lms)
-
         self.face_info.update((confidence, (lms, eye_state)), np.array(lms)[:, 0:2].mean(0))
 
         duration_model = 1000 * (time.perf_counter() - start_model)
         start_pnp = time.perf_counter()
+
         face_info = self.face_info
 
-        if face_info.alive:
-            face_info = landmarks.estimate_depth(face_info, frame.width, frame.height)
+        if not face_info.alive:
+            return self.early_exit("Face info not valid", start)
 
-            if face_info.success:
-                lms = face_info.lms[:, 0:2]
-                y1, x1 = lms[0:66].min(0)
-                y2, x2 = lms[0:66].max(0)
-                self.face = [x1, y1, x2 - x1, y2 - y1]
-                duration_pnp = 1000 * (time.perf_counter() - start_pnp)
-                duration = (time.perf_counter() - start) * 1000
-                print(f"Took {duration:.2f}ms (detect: {duration_fd:.2f}ms, crop: {duration_pp:.2f}ms, track: {duration_model:.2f}ms, 3D points: {duration_pnp:.2f}ms)")
-                return face_info, self.face
+        face_info = landmarks.estimate_depth(face_info, frame.width, frame.height)
 
-        #Combined multiple failures into one catch all exit
-        return self.early_exit("Face info not valid", start)
+        if not face_info.success:
+            return self.early_exit("Face info not valid", start)
+
+        lms = face_info.lms[:, 0:2]
+        y1, x1 = lms[0:66].min(0)
+        y2, x2 = lms[0:66].max(0)
+        self.face = np.array([x1, y1, x2 - x1, y2 - y1], dtype = np.int32)
+        duration_pnp = 1000 * (time.perf_counter() - start_pnp)
+        duration = (time.perf_counter() - start) * 1000
+        print(f"Took {duration:.2f}ms")
+        print(f"detect: {duration_fd:.2f}ms, crop: {duration_pp:.2f}ms, track: {duration_model:.2f}ms, 3D points: {duration_pnp:.2f}ms")
+        return face_info, self.face

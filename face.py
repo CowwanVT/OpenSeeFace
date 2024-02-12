@@ -120,8 +120,8 @@ class FaceInfo():
     def normalize_pts3d(self, pts_3d):
         # Calculate angle using nose
         pts_3d[:, 0:2] -= pts_3d[30, 0:2]
-        alpha = (math.atan2(*((pts_3d[27, 0:2]) - pts_3d[30, 0:2])[::-1]) % (2*math.pi))
-
+        alpha = math.atan2(*((pts_3d[27, 0:2]) - pts_3d[30, 0:2])[::-1])
+        alpha = alpha % (2*math.pi)
 
         cosalpha = math.cos(alpha-(math.pi/2))
         sinalpha = math.sin(alpha-(math.pi/2))

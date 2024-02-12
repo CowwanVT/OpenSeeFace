@@ -46,6 +46,87 @@ def landmarks(tensor, crop_info):
     lms[np.isnan(lms).any(axis=1)] = [0.,0.,0.]
     return (np.average(t_conf), lms)
 
+
+#---Things estimate_depth used to do---
+
+def solvePnP(face, im_pts, camera):
+    rvec=face.rotation
+    tvec=face.translation
+    flags=cv2.SOLVEPNP_ITERATIVE
+    zeros = np.zeros((4,1))
+    contour = face.contour
+    return cv2.solvePnP(contour, im_pts, camera, zeros, useExtrinsicGuess=True, rvec=rvec, tvec=tvec, flags=flags)
+
+# Right eyeball
+# Eyeballs have an average diameter of 12.5mm
+#the distance between eye corners is 30-35mm,
+#so a conversion factor of 0.385 can be applied
+def rightEye(pts_3d):
+    eye_center = (pts_3d[36] + pts_3d[39]) / 2.0
+    d_corner = np.linalg.norm(pts_3d[36] - pts_3d[39])
+    depth = 0.385 * d_corner
+    eye_center[2]-=depth
+    return eye_center
+
+def leftEye(pts_3d):
+    eye_center = (pts_3d[42] + pts_3d[45]) / 2.0
+    d_corner = np.linalg.norm(pts_3d[42] - pts_3d[45])
+    depth = 0.385 * d_corner
+    eye_center[2]-=depth
+    return eye_center
+
+def leftEyeCenter(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotation):
+    d1 = np.linalg.norm(lms[67,0:2] - lms[42,0:2])
+    d2 = np.linalg.norm(lms[67,0:2] - lms[45,0:2])
+    d = d1 + d2
+    pt = (pts_3d[42] * d1 + pts_3d[45] * d2) / d
+
+    reference = rmat.dot(pt)
+    reference = reference + face.translation
+    reference = camera.dot(reference)
+    depth = reference[2]
+
+    pt_3d = [lms[67][0] * depth, lms[67][1] * depth, depth]
+    pt_3d = inverse_camera.dot(pt_3d)
+    pt_3d = pt_3d - face.translation
+    pt_3d = inverse_rotation.dot(pt_3d)
+    return pt_3d[:]
+
+def rightEyeCenter(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotation):
+    d1 = np.linalg.norm(lms[66,0:2] - lms[36,0:2])
+    d2 = np.linalg.norm(lms[66,0:2] - lms[39,0:2])
+    d = d1 + d2
+    pt = (pts_3d[36] * d1 + pts_3d[39] * d2) / d
+
+    reference = rmat.dot(pt)
+    reference = reference + face.translation
+    reference = camera.dot(reference)
+    depth = reference[2]
+
+    pt_3d = [lms[66][0] * depth, lms[66][1] * depth, depth]
+    pt_3d = inverse_camera.dot(pt_3d)
+    pt_3d = pt_3d - face.translation
+    pt_3d = inverse_rotation.dot(pt_3d)
+    return pt_3d[:]
+
+def points0to66(pts_3d, lms, t_depth_e, inverse_camera, face, inverse_rotation):
+    pts_3d[0:66] = np.stack([lms[0:66,0], lms[0:66,1], np.ones((66,))], 1)
+    pts_3d[0:66] = pts_3d[0:66] * t_depth_e[0:66]
+    pts_3d[0:66] = pts_3d[0:66].dot(inverse_camera.transpose())
+    pts_3d[0:66] = pts_3d[0:66] - face.translation
+    return pts_3d[0:66].dot(inverse_rotation.transpose())
+
+def calculatePNPerror(lms, t_reference, image_pts ):
+    pnp_error = np.power(lms[0:17,0:2] - t_reference[0:17,0:2], 2).sum()
+    pnp_error += np.power(lms[30,0:2] - t_reference[30,0:2], 2).sum()
+
+    if np.isnan(pnp_error):
+        pnp_error = 9999999.
+
+    pnp_error = math.sqrt(pnp_error / (2.0 * image_pts.shape[0]))
+
+    return pnp_error
+
 def estimate_depth( face, width, height):
     camera = np.array([[width, 0, width/2], [0, width, height/2], [0, 0, 1]])
     inverse_camera = np.linalg.inv(camera)
@@ -53,13 +134,7 @@ def estimate_depth( face, width, height):
     image_pts = lms[face.contourPoints, 0:2]
     pts_3d = np.zeros((70,3), np.float32) #needs to be np.float32
 
-    success = False
-    rvec=face.rotation
-    tvec=face.translation
-    flags=cv2.SOLVEPNP_ITERATIVE
-    zeros = np.zeros((4,1))
-    pnp = cv2.solvePnP(face.contour, image_pts, camera, zeros, useExtrinsicGuess=True, rvec=rvec, tvec=tvec, flags=flags)
-    success, face.rotation, face.translation = pnp
+    success, face.rotation, face.translation = solvePnP(face, image_pts, camera)
 
     if not success:
         face.rotation = [0.0, 0.0, 0.0]
@@ -79,75 +154,25 @@ def estimate_depth( face, width, height):
 
     inverse_rotation = np.linalg.inv(rmat)
 
-    pts_3d[0:66] = np.stack([lms[0:66,0], lms[0:66,1], np.ones((66,))], 1)
-    pts_3d[0:66] = pts_3d[0:66] * t_depth_e[0:66]
-    pts_3d[0:66] = pts_3d[0:66].dot(inverse_camera.transpose())
-    pts_3d[0:66] = pts_3d[0:66] - face.translation
-    pts_3d[0:66] = pts_3d[0:66].dot(inverse_rotation.transpose())
+    pts_3d[0:66] = points0to66(pts_3d, lms, t_depth_e, inverse_camera, face, inverse_rotation)
 
-    d1 = np.linalg.norm(lms[66,0:2] - lms[36,0:2])
-    d2 = np.linalg.norm(lms[66,0:2] - lms[39,0:2])
-    d = d1 + d2
-    pt = (pts_3d[36] * d1 + pts_3d[39] * d2) / d
+    pts_3d[66,:] = rightEyeCenter(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotation)
 
-    reference = rmat.dot(pt)
-    reference = reference + face.translation
-    reference = camera.dot(reference)
-    depth = reference[2]
+    pts_3d[67,:] = leftEyeCenter(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotation)
 
-    pt_3d = [lms[66][0] * depth, lms[66][1] * depth, depth]
-    pt_3d = inverse_camera.dot(pt_3d)
-    pt_3d = pt_3d - face.translation
-    pt_3d = inverse_rotation.dot(pt_3d)
-    pts_3d[66,:] = pt_3d[:]
+    pts_3d[68] = rightEye(pts_3d)
 
-    d1 = np.linalg.norm(lms[67,0:2] - lms[42,0:2])
-    d2 = np.linalg.norm(lms[67,0:2] - lms[45,0:2])
-    d = d1 + d2
-    pt = (pts_3d[42] * d1 + pts_3d[45] * d2) / d
-
-    reference = rmat.dot(pt)
-    reference = reference + face.translation
-    reference = camera.dot(reference)
-    depth = reference[2]
-
-    pt_3d = [lms[67][0] * depth, lms[67][1] * depth, depth]
-    pt_3d = inverse_camera.dot(pt_3d)
-    pt_3d = pt_3d - face.translation
-    pt_3d = inverse_rotation.dot(pt_3d)
-    pts_3d[67,:] = pt_3d[:]
-
-    # Right eyeball
-    # Eyeballs have an average diameter of 12.5mm
-    #the distance between eye corners is 30-35mm,
-    #so a conversion factor of 0.385 can be applied
-    eye_center = (pts_3d[36] + pts_3d[39]) / 2.0
-    d_corner = np.linalg.norm(pts_3d[36] - pts_3d[39])
-    depth = 0.385 * d_corner
-    eye_center[2]-=depth
-    pts_3d[68] = eye_center
-
-    # Left eyeball
-    eye_center = (pts_3d[42] + pts_3d[45]) / 2.0
-    d_corner = np.linalg.norm(pts_3d[42] - pts_3d[45])
-    depth = 0.385 * d_corner
-    eye_center[2]-=depth
-    pts_3d[69] = eye_center
+    pts_3d[69] = leftEye(pts_3d)
 
     pts_3d[np.isnan(pts_3d).any(axis=1)] = np.array([0.,0.,0.])
 
-    pnp_error = np.power(lms[0:17,0:2] - t_reference[0:17,0:2], 2).sum()
-    pnp_error += np.power(lms[30,0:2] - t_reference[30,0:2], 2).sum()
+    pnp_error = calculatePNPerror(lms, t_reference, image_pts )
 
-    if np.isnan(pnp_error):
-        pnp_error = 9999999.
-
-    pnp_error = math.sqrt(pnp_error / (2.0 * image_pts.shape[0]))
     if pnp_error > 300:
         face.fail_count += 1
         if face.fail_count > 5:
             # Something went wrong with adjusting the 3D model
-            print(f"Detected anomaly when 3D fitting face {0}. Resetting.")
+            print("Detected anomaly when 3D fitting face. Resetting")
             face.rotation = np.array([0.0, 0.0, 0.0])
             face.translation = np.array([0.0, 0.0, 0.0])
     else:
