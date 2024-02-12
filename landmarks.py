@@ -75,7 +75,7 @@ def leftEye(pts_3d):
     eye_center[2]-=depth
     return eye_center
 
-def leftEyeCenter(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotation):
+def leftEyePupil(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotation):
     d1 = np.linalg.norm(lms[67,0:2] - lms[42,0:2])
     d2 = np.linalg.norm(lms[67,0:2] - lms[45,0:2])
     d = d1 + d2
@@ -92,7 +92,7 @@ def leftEyeCenter(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotati
     pt_3d = inverse_rotation.dot(pt_3d)
     return pt_3d[:]
 
-def rightEyeCenter(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotation):
+def rightEyePupil(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotation):
     d1 = np.linalg.norm(lms[66,0:2] - lms[36,0:2])
     d2 = np.linalg.norm(lms[66,0:2] - lms[39,0:2])
     d = d1 + d2
@@ -156,9 +156,9 @@ def estimate_depth( face, width, height):
 
     pts_3d[0:66] = points0to66(pts_3d, lms, t_depth_e, inverse_camera, face, inverse_rotation)
 
-    pts_3d[66,:] = rightEyeCenter(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotation)
+    pts_3d[66,:] = rightEyePupil(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotation)
 
-    pts_3d[67,:] = leftEyeCenter(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotation)
+    pts_3d[67,:] = leftEyePupil(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotation)
 
     pts_3d[68] = rightEye(pts_3d)
 

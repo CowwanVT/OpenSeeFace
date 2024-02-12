@@ -7,6 +7,8 @@ import time
 from tracker import Tracker
 import webcam
 import vts
+import cv2
+cv2.setNumThreads(6)
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-i", "--ip", help="Set IP address for sending tracking data", default="127.0.0.1")
@@ -29,6 +31,50 @@ parser.add_argument("--low-latency", type=int, help="Low latency mode. Lowers la
 parser.add_argument("--target-brightness", type=float, help="range 0.25-0.75, Target brightness of the brightness adjustment. Defaults to 0.55", default = 0.55)
 
 args = parser.parse_args()
+
+
+def visualize(frame, face):
+
+    y1, x1, _ = face.lms[0:66].min(0)
+    y2, x2, _ = face.lms[0:66].max(0)
+    x1 -= 0.25*(x2 - x1)
+    x2 += 0.25*(x2 - x1)
+    y1 -= 0.5*(y2 - y1)
+    y2 += 0.1*(y2 - y1)
+    h = y2 - y1
+    ratio = 720 / h
+    h = int(ratio * frame.height)
+    w = int(ratio * frame.width)
+
+    image = cv2.resize(frame.image, (w,h), interpolation=cv2.INTER_CUBIC)
+
+
+
+
+    for pt_num, (x,y,c) in enumerate(face.lms):
+        x = int(x * ratio + 0.5)
+        y = int(y * ratio + 0.5)
+        image = cv2.putText(image, str(pt_num), (int(y), int(x)), cv2.FONT_HERSHEY_SIMPLEX, 0.33, (255,255,0))
+        color = (0, 255, 0)
+        if pt_num >= 66:
+            color = (255, 255, 0)
+        if not (x < 0 or y < 0 or x >= h or y >= w):
+            cv2.circle(image, (y, x), 1, color, -1)
+    x1 *= ratio
+    x2 *= ratio
+    y1 *= ratio
+    y2 *= ratio
+
+    x1 = int(max(x1, 0))
+    y1 = int(max(y1, 0))
+    x2 = int(min(x2, w - 1))
+    y2 = int(min(y2, h - 1))
+
+    image = image[y1:y2,x1:x2]
+
+
+    cv2.imshow("Visualization",cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+    cv2.waitKey(1)
 
 #processing args
 fps = args.fps
@@ -120,6 +166,9 @@ try:
         frameTime = time.perf_counter() - frame_get
         total_active_time += frameTime
         peak_frame_time = max(peak_frame_time, frameTime)
+
+        if visualizeFlag:
+            visualize(frame, faceInfo)
 
         duration = time.perf_counter() - frame_start
         if not lowLatency:
