@@ -9,7 +9,6 @@ import eyes
 import landmarks
 import face
 
-
 def prepareImageForModel(frame):
     mean = np.float32(np.array([-2.1179, -2.0357, -1.8044]))
     std = np.float32(np.array([0.0171, 0.0175, 0.0174]))
@@ -43,14 +42,17 @@ class Models():
 
         options = onnxruntime.SessionOptions()
         options.inter_op_num_threads = 1
+
         options.intra_op_num_threads =  args.threads
         options.execution_mode = onnxruntime.ExecutionMode.ORT_SEQUENTIAL
         options.graph_optimization_level = optimizationLevel
         options.log_severity_level = 3
 
         self.landmarks = onnxruntime.InferenceSession(landmarksModel, sess_options=options, providers=providersList)
-        self.faceDetection = onnxruntime.InferenceSession(faceDetectModel, sess_options=options, providers=providersList)
         self.gazeTracker = onnxruntime.InferenceSession(gazeModel, sess_options=options, providers=providersList)
+
+        options.intra_op_num_threads =  2
+        self.faceDetection = onnxruntime.InferenceSession(faceDetectModel, sess_options=options, providers=providersList)
 
     def detectFaces(self, frame):
 
@@ -171,6 +173,7 @@ class Tracker():
         self.face = np.array([x1, y1, x2 - x1, y2 - y1], dtype = np.int32)
         duration_pnp = 1000 * (time.perf_counter() - start_pnp)
         duration = (time.perf_counter() - start) * 1000
-        print(f"Took {duration:.2f}ms")
-        print(f"detect: {duration_fd:.2f}ms, crop: {duration_pp:.2f}ms, track: {duration_model:.2f}ms, 3D points: {duration_pnp:.2f}ms")
+        print(f"Took {duration:.2f}ms, detect: {duration_fd:.2f}ms,", end = " ")
+        print(f"crop: {duration_pp:.2f}ms, track: {duration_model:.2f}ms", end = " ")
+        print(f"3D points: {duration_pnp:.2f}ms")
         return face_info, self.face

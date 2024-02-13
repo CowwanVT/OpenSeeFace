@@ -34,7 +34,7 @@ class Webcam():
         self.cap.set(3, self.width)
         self.cap.set(4, self.height)
         self.cap.set(cv2.CAP_PROP_FPS, self.fps)
-        self.targetFrameTime = 1 / (self.fps-0.001)
+        self.targetFrameTime = 1 / (self.fps)
         time.sleep(0.1)
         self.cap.read()
         time.sleep(0.1)

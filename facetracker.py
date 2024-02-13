@@ -28,7 +28,6 @@ parser.add_argument("--feature-type", type=int, help="Sets which version of feat
 parser.add_argument("--numpy-threads", type=int, help="Numer of threads Numpy can use, doesn't seem to effect much", default=1)
 parser.add_argument("-T","--threads", type=int, help="Numer of threads used for landmark detection. Default is 1 (~15ms per frame on my computer), 2 gets slightly faster frames (~10ms on my computer), more than 2 doesn't seem to help much", default=1)
 parser.add_argument("-v", "--visualize", type=int, help="Set this to 1 to visualize the tracking", default=0)
-parser.add_argument("--low-latency", type=int, help="Low latency mode. Lowers latency, at the cost of inconsistent timings. Combine with --threads 2 (or more) for maxiumum effect. 0 is off, 1 is on", default = 0)
 parser.add_argument("--target-brightness", type=float, help="range 0.25-0.75, Target brightness of the brightness adjustment. Defaults to 0.55", default = 0.55)
 
 args = parser.parse_args()
@@ -75,19 +74,15 @@ def visualize(frame, face):
 height = args.height
 width = args.width
 visualizeFlag = (args.visualize == 1)
-lowLatency = (args.low_latency == 1 and not visualizeFlag)
 silent = (args.silent == 1)
 fps = args.fps
 
-if lowLatency:
-    target_duration = 0.75 / fps
-    frameQueueSize = 1
-elif height > 480:
+if height > 480:
     target_duration = 1 / (fps - 0.001)
     frameQueueSize = 2
 else:
     frameQueueSize = 1
-    target_duration = 1 / (fps - 0.001)
+    target_duration = 1 / (fps)
 
 #---Setting up worker threads---
 
@@ -131,22 +126,14 @@ latencyStats = maffs.Stats()
 
 lateFrames = 0
 frame_count = 0
-peak_frame_time=0.0
-total_active_time = 0.0
-total_run_time = 0.0
 frame_start = 0.0
-peak_time_between = 0.0
-peak_camera_latency = 0.0
-total_camera_latency = 0.0
-peakTotalLatency = 0.0
-totalTotalLatency = 0.0
 sleepTime = 0.0
 
 tracker = Tracker(args)
 
 #don't start until the webcam is ready, then give it a little more time to fill it's buffer
 frameQueue.get()
-time.sleep(target_duration)
+time.sleep(target_duration-0.01)
 
 trackingStart = time.perf_counter()
 try:
@@ -155,7 +142,6 @@ try:
         frame_count += 1
         frame = frameQueue.get()
         frame_get = time.perf_counter()
-
         webcamStats.update(frame.cameraLatency)
 
         faceInfo, frame.face  = tracker.predict(frame)
@@ -165,23 +151,19 @@ try:
                 faceQueue.put(frame)
 
         frameTime = time.perf_counter() - frame_get
-
         trackingTimeStats.update(frameTime)
 
         if visualizeFlag:
             visualize(frame, faceInfo)
 
-        duration = time.perf_counter() - frame_start
-        if not lowLatency:
-            sleepTime = target_duration - duration
-            if sleepTime > 0:
-                time.sleep(sleepTime)
-            else:
-                print("Cannot maintain framerate")
-                lateFrames += 1
+        duration = (time.perf_counter() - frame_start)
 
-        timeSinceLastFrame = time.perf_counter() -frame_start
-        frameTimeStats.update(timeSinceLastFrame)
+        sleepTime = target_duration - duration
+        if sleepTime > 0:
+            time.sleep(sleepTime)
+        else:
+            print("Cannot maintain framerate")
+            lateFrames += 1
 
         #If we don't have something to send to Vtube Studio we don't
         if faceInfo is not None:
@@ -189,6 +171,8 @@ try:
         else:
             print("No data sent to VTS")
 
+        timeSinceLastFrame = (time.perf_counter() - frame_start)
+        frameTimeStats.update(timeSinceLastFrame)
         latency = time.perf_counter() - frame.startTime
         latencyStats.update(latency)
 

@@ -23,8 +23,6 @@ class Eye():
         self.info = None
         self.results = None
         self.confidence = 0
-        self.avgConfidence = 0.
-        self.totalVariance = 0
         self.lastEyeState = [0.,0.]
         self.innerPoint = None
         self.outerPoint = None
@@ -94,7 +92,6 @@ class Eye():
         eye_y = 4.0 * (y + off_y)
 
         #if eye movements are below 3 standard deviations of the average the movement rejected
-        #the eyes are handled independenly because my testing showed that one eye tended to have a higher confidence than the other
         if self.results[0][x,y] < confidenceThreshold:
             eye_y = self.lastEyeState[0]
             eye_x = self.lastEyeState[1]

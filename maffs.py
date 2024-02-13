@@ -30,8 +30,6 @@ def clamp_to_im(pt, w, h):
         y = h-1
     return (int(x), int(y))
 
-
-
 class Stats():
     def __init__(self):
         self.count = 0.
@@ -56,12 +54,16 @@ class Stats():
         return self.mean
 
     def getVariance(self):
-        return self.M2/self.count
+        if self.count > 2:
+            return self.M2/self.count
+        else:
+            return 0.
 
     def getSampleVariance(self):
-        return self.M2/(self.count-1)
-
-
+        if self.count > 2:
+            return self.M2/(self.count-1)
+        else:
+            return 0.
 
 
 
