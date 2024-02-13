@@ -118,7 +118,7 @@ webcamThread = threading.Thread(target=Webcam.start)
 webcamThread.daemon = True
 webcamThread.start()
 
-
+#---Setting up statistic trackers---
 webcamStats = maffs.Stats()
 trackingTimeStats = maffs.Stats()
 frameTimeStats = maffs.Stats()
@@ -136,6 +136,8 @@ frameQueue.get()
 time.sleep(target_duration-0.01)
 
 trackingStart = time.perf_counter()
+
+#---The actual main loop---
 try:
     while True:
         frame_start = time.perf_counter()
@@ -180,8 +182,7 @@ except KeyboardInterrupt:
     if not silent:
         print("Quitting")
 
-#printing statistics on close
-#it makes identifying problems easier
+#---Printing some potentially useful stats---
 
 #time from getting the frame from the webcam to sending face data to VTS
 print(f"Peak latency: {(latencyStats.maximum * 1000):.3f}ms")

@@ -5,7 +5,7 @@ import maffs
 #I redid a lot of this so it worked well for me
 #idk if it'll work well for other people
 class Feature():
-    def __init__(self, alpha=0.1, decay=0.0005, curve=1, scaleType = 1):
+    def __init__(self, alpha=0.1, decay=0.0005, curve=1, scaleType = 1, statisticalFiltering = 1):
         self.min = None
         self.max = None
         self.alpha = alpha
@@ -13,6 +13,8 @@ class Feature():
         self.last = 0.0
         self.curve = curve
         self.scaleType = scaleType
+        self.statisticalFiltering = statisticalFiltering
+        self.stdDev = maffs.Stats()
 
     def update(self, x):
         new = self.update_state(x)
@@ -20,6 +22,7 @@ class Feature():
         return self.last
 
     def update_state(self, x):
+        x = self.stdDev.clamp(x)
         if self.min is None or self.max is None:
             self.min = x - 0.00001
             self.max = x + 0.00001

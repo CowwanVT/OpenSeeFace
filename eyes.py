@@ -16,7 +16,6 @@ class Eye():
     mean = np.float32(np.array([-2.1179, -2.0357, -1.8044]))
     std = np.float32(np.array([0.0171, 0.0175, 0.0174]))
     def __init__(self,index):
-        self.frames = 0
         self.index = index
         self.state = [1.,0.,0.,0.]
         self.image = None
@@ -27,6 +26,8 @@ class Eye():
         self.innerPoint = None
         self.outerPoint = None
         self.stdDev = maffs.Stats()
+        self.xStats = maffs.Stats()
+        self.yStats = maffs.Stats()
 
     def prepare_eye(self, faceFrame):
         self.state = [1.,0.,0.,0.]
@@ -90,6 +91,26 @@ class Eye():
         p = maffs.clamp(p, 0.00001, 0.9999)
         off_y = math.log(p/(1-p))
         eye_y = 4.0 * (y + off_y)
+
+        if eye_x < self.lastEyeState[1]:
+            delta = self.lastEyeState[1] - eye_x
+            delta = self.xStats.clamp(delta)
+            eye_x = self.lastEyeState[1] - delta
+        if eye_x < self.lastEyeState[1]:
+            delta = eye_x - self.lastEyeState[1]
+            delta = self.xStats.clamp(delta)
+            eye_x = self.lastEyeState[1] + delta
+
+        if eye_y < self.lastEyeState[0]:
+            delta = self.lastEyeState[0] - eye_y
+            delta = self.yStats.clamp(delta)
+            eye_y = self.lastEyeState[0] - delta
+        if eye_y < self.lastEyeState[0]:
+            delta = eye_y - self.lastEyeState[0]
+            delta = self.yStats.clamp(delta)
+            eye_y = self.lastEyeState[0] + delta
+
+
 
         #if eye movements are below 3 standard deviations of the average the movement rejected
         if self.results[0][x,y] < confidenceThreshold:

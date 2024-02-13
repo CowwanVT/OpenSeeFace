@@ -47,7 +47,7 @@ class Stats():
         delta = new_value - self.mean
         self.mean += delta / self.count
         delta2 = new_value - self.mean
-        self.M2 += delta * delta2
+        self.M2 += abs(delta * delta2)
         return
 
     def getMean(self):
@@ -55,15 +55,26 @@ class Stats():
 
     def getVariance(self):
         if self.count > 2:
-            return self.M2/self.count
+            return math.sqrt(self.M2/self.count)
         else:
             return 0.
 
     def getSampleVariance(self):
         if self.count > 2:
-            return self.M2/(self.count-1)
+            return math.sqrt(self.M2/(self.count-1))
         else:
             return 0.
+    def clamp(self, value):
+        if self.count < 60:
+            self.update(value)
+            return value
+        else:
+            self.update(value)
+            value = min( value, self.mean + (2* abs(self.getSampleVariance())))
+            value = max( value, self.mean - (2* abs(self.getSampleVariance())))
+            return value
+
+
 
 
 
