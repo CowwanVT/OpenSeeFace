@@ -124,7 +124,6 @@ def calculatePNPerror(lms, t_reference, image_pts ):
         pnp_error = 9999999.
 
     pnp_error = math.sqrt(pnp_error / (2.0 * image_pts.shape[0]))
-
     return pnp_error
 
 def estimate_depth( face, width, height):
@@ -155,13 +154,9 @@ def estimate_depth( face, width, height):
     inverse_rotation = np.linalg.inv(rmat)
 
     pts_3d[0:66] = points0to66(pts_3d, lms, t_depth_e, inverse_camera, face, inverse_rotation)
-
     pts_3d[66,:] = rightEyePupil(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotation)
-
     pts_3d[67,:] = leftEyePupil(lms, pts_3d, rmat, face,camera, inverse_camera, inverse_rotation)
-
     pts_3d[68] = rightEye(pts_3d)
-
     pts_3d[69] = leftEye(pts_3d)
 
     pts_3d[np.isnan(pts_3d).any(axis=1)] = np.array([0.,0.,0.])

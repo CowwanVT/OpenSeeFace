@@ -9,6 +9,7 @@ import eyes
 import landmarks
 import face
 
+
 def prepareImageForModel(frame):
     mean = np.float32(np.array([-2.1179, -2.0357, -1.8044]))
     std = np.float32(np.array([0.0171, 0.0175, 0.0174]))
@@ -20,19 +21,6 @@ def prepareImageForModel(frame):
     image = np.expand_dims(image, 0)
     image = np.transpose(image, (0,3,1,2))
     return image
-
-def clamp_to_im(pt, w, h):
-    x = pt[0]
-    y = pt[1]
-    if x < 0:
-        x = 0
-    if y < 0:
-        y = 0
-    if x >= w:
-        x = w-1
-    if y >= h:
-        y = h-1
-    return (int(x), int(y))
 
 class Models():
     models = [

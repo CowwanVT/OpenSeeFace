@@ -21,7 +21,6 @@ class VTS():
         "mouth_wide"]
 
     def __init__(self):
-
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.targetIP = None
         self.targetPort = None
@@ -35,9 +34,6 @@ class VTS():
             faceInfo = self.faceInfoQueue.get()
             packet = self.preparePacket(faceInfo)
             self.sendPacket(packet)
-
-
-
 
     def preparePacket(self, face):
         packet = bytearray()
@@ -87,6 +83,3 @@ class VTS():
         except:
             print("Failed to send packet")
         return
-
-
-

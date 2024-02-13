@@ -2,36 +2,7 @@ import numpy as np
 import math
 import cv2
 cv2.setNumThreads(6)
-
-def clamp_to_im(pt, w, h):
-    x = pt[0]
-    y = pt[1]
-    if x < 0:
-        x = 0
-    if y < 0:
-        y = 0
-    if x >= w:
-        x = w-1
-    if y >= h:
-        y = h-1
-    return (int(x), int(y))
-
-
-def rotate(origin, point, a):
-    x, y = point - origin
-    a = -a
-
-    qx = math.cos(a) * x - math.sin(a) * y
-
-    qy = math.sin(a) * x + math.cos(a) * y
-
-    qx+= origin[0]
-    qy+= origin[1]
-
-    return qx, qy
-
-def clamp (value, minimum, maxium):
-    return max(min(value,maxium),minimum)
+import maffs
 
 def rotate_image(image, a, center): #twice per frame, 0.2ms - 0.25ms each, improved to 0.15ms - 0.25ms
     center = (float(center[0]), float(center[1]))
@@ -45,19 +16,19 @@ class Eye():
     mean = np.float32(np.array([-2.1179, -2.0357, -1.8044]))
     std = np.float32(np.array([0.0171, 0.0175, 0.0174]))
     def __init__(self,index):
-        self.eye_tracking_frames = 0
+        self.frames = 0
         self.index = index
         self.state = [1.,0.,0.,0.]
         self.image = None
         self.info = None
         self.results = None
-        self.condifence = 0
-        self.standardDeviation = 0.
-        self.averageEyeConfidence = 1.
-        self.averageEyeConfidenceVariance = 0
+        self.confidence = 0
+        self.avgConfidence = 0.
+        self.totalVariance = 0
         self.lastEyeState = [0.,0.]
         self.innerPoint = None
         self.outerPoint = None
+        self.stdDev = maffs.Stats()
 
     def prepare_eye(self, faceFrame):
         self.state = [1.,0.,0.,0.]
@@ -94,39 +65,36 @@ class Eye():
 
         a = math.atan2(*(c2 - c1)[::-1])
         a = a % (2*math.pi)
-        c2 = rotate(c1, c2, a)
+        c2 = maffs.rotate(c1, c2, a)
         center = (c1 + c2) / 2.0
 
         radius = np.linalg.norm(c1 - c2)
         radius = [radius * 0.7, radius * 0.6]
-        upper_left = clamp_to_im(center - radius, w, h)
-        lower_right = clamp_to_im(center + radius, w, h)
+        upper_left = maffs.clamp_to_im(center - radius, w, h)
+        lower_right = maffs.clamp_to_im(center + radius, w, h)
         return upper_left, lower_right, a
 
     def calculateEye(self):
 
         e_x, e_y, scale, reference, angles = self.info
-        #3 standard deviations should have 0.3% of eye movements rejected
-        #which is a very small number
-        #but those are the ones that cause wild eye movements
-        confidenceThreshold = self.averageEyeConfidence - 3 * self.standardDeviation
+        confidenceThreshold = self.stdDev.getMean() - 2 * self.stdDev.getSampleVariance()
 
         m = self.results[0].argmax()
         x = m // 8
         y = m % 8
 
         p=self.results[1][x, y]
-        p = clamp(p, 0.00001, 0.9999)
+        p = maffs.clamp(p, 0.00001, 0.9999)
         off_x = math.log(p/(1-p))
         eye_x = 4.0 *(x + off_x)
 
         p=self.results[2][x, y]
-        p = clamp(p, 0.00001, 0.9999)
+        p = maffs.clamp(p, 0.00001, 0.9999)
         off_y = math.log(p/(1-p))
         eye_y = 4.0 * (y + off_y)
 
         #if eye movements are below 3 standard deviations of the average the movement rejected
-        #the eyes are handled independenly because my testing showed that one eye tended to have a higher condifence than the other
+        #the eyes are handled independenly because my testing showed that one eye tended to have a higher confidence than the other
         if self.results[0][x,y] < confidenceThreshold:
             eye_y = self.lastEyeState[0]
             eye_x = self.lastEyeState[1]
@@ -138,29 +106,13 @@ class Eye():
         eye_x = e_x + scale[0] * eye_x
         eye_y = e_y + scale[1] * eye_y
 
-        eye_x, eye_y = rotate(reference, (eye_x, eye_y), -angles)
+        eye_x, eye_y = maffs.rotate(reference, (eye_x, eye_y), -angles)
         eye_x, eye_y = (eye_x, eye_y) + self.offset
 
-        self.condifence = self.results[0][x,y]
-        self.calculateStandardDeviation()
-        self.state  = [1.0, eye_y, eye_x, self.condifence]
+        self.confidence = self.results[0][x,y]
+        self.stdDev.update(self.confidence)
+        self.state  = [1.0, eye_y, eye_x, self.confidence]
         return
-
-    def calculateStandardDeviation(self):
-        #calculates a *vague* approximation of the standard deviation of eye condivences
-        #allows me to reject a very small portion of eye movements while preventing errant eye movements
-        self.eye_tracking_frames+=1
-
-        avgRatio = 1/self.eye_tracking_frames
-
-        self.averageEyeConfidence *= (1-avgRatio)
-        self.averageEyeConfidence += self.condifence * avgRatio
-
-        self.averageEyeConfidenceVariance *= 1-avgRatio
-
-        self.averageEyeConfidenceVariance += pow(self.condifence - self.averageEyeConfidence, 2) * avgRatio
-
-        self.standardDeviation = math.sqrt(self.averageEyeConfidenceVariance)
 
 class EyeTracker():
     np.float32(np.array([-2.1179, -2.0357, -1.8044]))

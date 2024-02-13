@@ -1,17 +1,6 @@
 import math
+import maffs
 
-
-#got tired of trying to remember which order I had to do the nested min and max
-def clamp (value, minimum, maxium):
-    return max(min(value,maxium),minimum)
-
-def rotate(origin, point, a):
-    x, y = point - origin
-    cosa = math.cos(-a)
-    sina = math.sin(-a)
-    qx = origin[0] + cosa * x - sina * y
-    qy = origin[1] + sina * x + cosa * y
-    return qx, qy
 
 #I redid a lot of this so it worked well for me
 #idk if it'll work well for other people
@@ -45,12 +34,12 @@ class Feature():
         if self.scaleType == 1:
             #Returns a value between -1 and 1 in relation to the maximum range
             if x < center:
-                return -pow(clamp((x - center) / (self.min - center), 0, 1), self.curve)
+                return -pow(maffs.clamp((x - center) / (self.min - center), 0, 1), self.curve)
             elif x > center:
-                return pow(clamp((x - center) / (self.max - center), 0, 1), self.curve)
+                return pow(maffs.clamp((x - center) / (self.max - center), 0, 1), self.curve)
             return 0
         if self.scaleType == 2:
             #Returns a value between 0 and 1 in relation to the maximum range
-                return pow(clamp((x - self.min) / (self.max - self.min), 0, 1), self.curve)
+                return pow(maffs.clamp((x - self.min) / (self.max - self.min), 0, 1), self.curve)
         return 0
 

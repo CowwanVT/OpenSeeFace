@@ -1,14 +1,6 @@
 import feature
 import math
-
-def rotate(origin, point, a):
-    x, y = point - origin
-    cosa = math.cos(-a)
-    sina = math.sin(-a)
-    qx = origin[0] + cosa * x - sina * y
-    qy = origin[1] + sina * x + cosa * y
-    return qx, qy
-
+import maffs
 
 #This class determines how various parameters operate, I'l do my best to document it here so you can customize them
 #It's not a replacement for vbridger, but it'll get you some level of control beyond what Vtube Studio offers
@@ -106,5 +98,5 @@ class FeatureExtractor():
             alpha = - (alpha + math.pi)
         aligned_pts = []
         for pt in pts:
-            aligned_pts.append(rotate(a, pt, alpha))
+            aligned_pts.append(maffs.rotate(a, pt, alpha))
         return (aligned_pts)

@@ -9,6 +9,7 @@ import webcam
 import vts
 import cv2
 cv2.setNumThreads(6)
+import maffs
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-i", "--ip", help="Set IP address for sending tracking data", default="127.0.0.1")
@@ -48,18 +49,13 @@ def visualize(frame, face):
 
     image = cv2.resize(frame.image, (w,h), interpolation=cv2.INTER_CUBIC)
 
-
-
-
     for pt_num, (x,y,c) in enumerate(face.lms):
         x = int(x * ratio + 0.5)
         y = int(y * ratio + 0.5)
-        image = cv2.putText(image, str(pt_num), (int(y), int(x)), cv2.FONT_HERSHEY_SIMPLEX, 0.33, (255,255,0))
-        color = (0, 255, 0)
-        if pt_num >= 66:
-            color = (255, 255, 0)
+        image = cv2.putText(image, str(pt_num), (int(y+5), int(x-5)), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255,255,0))
+        color = (255, 0, 0)
         if not (x < 0 or y < 0 or x >= h or y >= w):
-            cv2.circle(image, (y, x), 1, color, -1)
+            cv2.circle(image, (y, x), 3, color, -1)
     x1 *= ratio
     x2 *= ratio
     y1 *= ratio
@@ -72,17 +68,16 @@ def visualize(frame, face):
 
     image = image[y1:y2,x1:x2]
 
-
     cv2.imshow("Visualization",cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
     cv2.waitKey(1)
 
 #processing args
-fps = args.fps
 height = args.height
 width = args.width
 visualizeFlag = (args.visualize == 1)
-lowLatency = (args.low_latency == 1)
+lowLatency = (args.low_latency == 1 and not visualizeFlag)
 silent = (args.silent == 1)
+fps = args.fps
 
 if lowLatency:
     target_duration = 0.75 / fps
@@ -128,6 +123,13 @@ webcamThread = threading.Thread(target=Webcam.start)
 webcamThread.daemon = True
 webcamThread.start()
 
+
+webcamStats = maffs.Stats()
+trackingTimeStats = maffs.Stats()
+frameTimeStats = maffs.Stats()
+latencyStats = maffs.Stats()
+
+lateFrames = 0
 frame_count = 0
 peak_frame_time=0.0
 total_active_time = 0.0
@@ -146,16 +148,15 @@ tracker = Tracker(args)
 frameQueue.get()
 time.sleep(target_duration)
 
+trackingStart = time.perf_counter()
 try:
     while True:
         frame_start = time.perf_counter()
         frame_count += 1
         frame = frameQueue.get()
         frame_get = time.perf_counter()
-        #If I don't wait a few frames to start tracking I get wild peak frame times, like 500ms
 
-        peak_camera_latency = max(frame.cameraLatency, peak_camera_latency)
-        total_camera_latency+= frame.cameraLatency
+        webcamStats.update(frame.cameraLatency)
 
         faceInfo, frame.face  = tracker.predict(frame)
 
@@ -164,8 +165,8 @@ try:
                 faceQueue.put(frame)
 
         frameTime = time.perf_counter() - frame_get
-        total_active_time += frameTime
-        peak_frame_time = max(peak_frame_time, frameTime)
+
+        trackingTimeStats.update(frameTime)
 
         if visualizeFlag:
             visualize(frame, faceInfo)
@@ -177,10 +178,10 @@ try:
                 time.sleep(sleepTime)
             else:
                 print("Cannot maintain framerate")
+                lateFrames += 1
 
         timeSinceLastFrame = time.perf_counter() -frame_start
-        peak_time_between = max(peak_time_between, timeSinceLastFrame)
-        total_run_time += timeSinceLastFrame
+        frameTimeStats.update(timeSinceLastFrame)
 
         #If we don't have something to send to Vtube Studio we don't
         if faceInfo is not None:
@@ -189,8 +190,7 @@ try:
             print("No data sent to VTS")
 
         latency = time.perf_counter() - frame.startTime
-        peakTotalLatency = max(peakTotalLatency, latency)
-        totalTotalLatency += latency
+        latencyStats.update(latency)
 
 except KeyboardInterrupt:
     if not silent:
@@ -200,22 +200,24 @@ except KeyboardInterrupt:
 #it makes identifying problems easier
 
 #time from getting the frame from the webcam to sending face data to VTS
-print(f"Peak latency: {(peakTotalLatency*1000):.3f}ms")
-print(f"Average latency: {(totalTotalLatency*1000/(frame_count)):.3f}ms")
+print(f"Peak latency: {(latencyStats.maximum * 1000):.3f}ms")
+print(f"Average latency: {(latencyStats.getMean() * 1000):.3f}ms")
 
 #time taken to get frame from webcam
-print(f"Peak camera latency: {(peak_camera_latency*1000):.3f}ms")
-print(f"Average camera latency: {(total_camera_latency*1000/(frame_count-5)):.3f}ms")
+print(f"Peak camera latency: {(webcamStats.maximum * 1000):.3f}ms")
+print(f"Average camera latency: {(webcamStats.getMean() * 1000):.3f}ms")
 
 #time between packets sent to VTS
-print(f"Peak time between frames: {(peak_time_between*1000):.3f}ms")
-print(f"Average time between frames: {(total_run_time*1000/(frame_count)):.3f}ms")
+print(f"Peak time between frames: {(frameTimeStats.maximum * 1000):.3f}ms")
+print(f"Average time between frames: {(frameTimeStats.getMean() * 1000):.3f}ms")
 
 #how long face detection took
-print(f"Peak frame time: {(peak_frame_time*1000):.3f}ms")
-print(f"Average frame time: { ((total_active_time)*1000/(frame_count)):.3f}ms")
+print(f"Peak tracking time: {(trackingTimeStats.maximum * 1000):.3f}ms")
+print(f"Average tracking time: { (trackingTimeStats.getMean() * 1000):.3f}ms")
 
 #how long the app ran
-print(f"Run time (seconds): {total_run_time:.2f} s\nFrames: {frame_count}")
+print(f"Run time (seconds): {(time.perf_counter() - trackingStart):.2f} s")
+print(f"Frames: {frame_count}")
+print(f"Late frames: {lateFrames}, {((lateFrames/frame_count)*100):.2f}% of frames")
 
 os._exit(0)
