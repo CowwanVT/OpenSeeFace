@@ -128,8 +128,7 @@ tracker = Tracker(args)
 
 #don't start until the webcam is ready, then give it a little more time to fill it's buffer
 frameQueue.get()
-#time.sleep(target_duration-0.01)
-time.sleep(target_duration*3)
+time.sleep(target_duration-0.01)
 
 trackingStart = time.perf_counter()
 
@@ -174,8 +173,8 @@ try:
         latency = time.perf_counter() - frame.startTime
         latencyStats.update(latency)
         if latency > target_duration * 1.1:
-            frameTimeAdjustment = -0.0005
-        else:
+            frameTimeAdjustment = -0.0001
+        if latency < target_duration:
             frameTimeAdjustment = 0.0
 
 except KeyboardInterrupt:
