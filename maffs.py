@@ -65,7 +65,7 @@ class Stats():
         else:
             return 0.
     def clamp(self, value):
-        if self.count < 60:
+        if self.count < 30:
             self.update(value)
             return value
         else:

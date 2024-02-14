@@ -77,16 +77,11 @@ visualizeFlag = (args.visualize == 1)
 silent = (args.silent == 1)
 fps = args.fps
 
-if height > 480:
-    target_duration = 1 / (fps - 0.001)
-    frameQueueSize = 2
-else:
-    frameQueueSize = 1
-    target_duration = 1 / (fps)
+target_duration = 1 / (fps)
 
 #---Setting up worker threads---
 
-frameQueue = queue.Queue(maxsize=frameQueueSize)
+frameQueue = queue.Queue(maxsize=1)
 faceQueue = queue.Queue(maxsize=1)
 faceInfoQueue = queue.Queue()
 
@@ -128,12 +123,13 @@ lateFrames = 0
 frame_count = 0
 frame_start = 0.0
 sleepTime = 0.0
-
+frameTimeAdjustment = 0.
 tracker = Tracker(args)
 
 #don't start until the webcam is ready, then give it a little more time to fill it's buffer
 frameQueue.get()
-time.sleep(target_duration-0.01)
+#time.sleep(target_duration-0.01)
+time.sleep(target_duration*3)
 
 trackingStart = time.perf_counter()
 
@@ -160,7 +156,7 @@ try:
 
         duration = (time.perf_counter() - frame_start)
 
-        sleepTime = target_duration - duration
+        sleepTime = target_duration - duration + frameTimeAdjustment
         if sleepTime > 0:
             time.sleep(sleepTime)
         else:
@@ -177,6 +173,10 @@ try:
         frameTimeStats.update(timeSinceLastFrame)
         latency = time.perf_counter() - frame.startTime
         latencyStats.update(latency)
+        if latency > target_duration * 1.1:
+            frameTimeAdjustment = -0.0005
+        else:
+            frameTimeAdjustment = 0.0
 
 except KeyboardInterrupt:
     if not silent:

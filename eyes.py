@@ -92,6 +92,11 @@ class Eye():
         off_y = math.log(p/(1-p))
         eye_y = 4.0 * (y + off_y)
 
+        #if eye movements are below 3 standard deviations of the average the movement rejected
+        if self.results[0][x,y] < confidenceThreshold:
+            eye_y = self.lastEyeState[0]
+            eye_x = self.lastEyeState[1]
+
         if eye_x < self.lastEyeState[1]:
             delta = self.lastEyeState[1] - eye_x
             delta = self.xStats.clamp(delta)
@@ -109,13 +114,6 @@ class Eye():
             delta = eye_y - self.lastEyeState[0]
             delta = self.yStats.clamp(delta)
             eye_y = self.lastEyeState[0] + delta
-
-
-
-        #if eye movements are below 3 standard deviations of the average the movement rejected
-        if self.results[0][x,y] < confidenceThreshold:
-            eye_y = self.lastEyeState[0]
-            eye_x = self.lastEyeState[1]
 
         self.lastEyeState = [eye_y, eye_x]
 

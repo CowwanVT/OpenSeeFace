@@ -63,11 +63,14 @@ class FeatureExtractor():
 
         f_pts = self.align_points(pts[42], pts[45], pts[[43, 44, 47, 46]])
         f = (f_pts[3][1]/2 + f_pts[2][1]/2) - (f_pts[0][1]/2 + f_pts[1][1]/2)
-        features["eye_l"] =  -self.eye_l.update(f)+0.1
+        features["eye_l"] =  -self.eye_l.update(f)
+
+
 
         f_pts = self.align_points(pts[36], pts[39], pts[[37, 38, 41, 40]])
         f = (f_pts[3][1]/2 + f_pts[2][1]/2) - (f_pts[0][1]/2 + f_pts[1][1]/2)
-        features["eye_r"] = -self.eye_r.update(f)+0.1
+        features["eye_r"] = -self.eye_r.update(f)
+
 
         f = ((pts[22][1]/2 + pts[26][1]/2) - (pts[42][1]/2 + pts[45][1]/2))/norm_distance_y
         features["eyebrow_updown_l"] = self.eyebrow_updown_l.update(f)
@@ -80,8 +83,8 @@ class FeatureExtractor():
 
         #mouth corners are calculated together so they are assigned the same value
         f = (((pts[58][1] + pts[62][1])/2) - (pts[60][1])+( pts[60][1] - pts[64][1])*0.325-0.5)#/ norm_distance_y
-        features["mouth_corner_updown_r"] = (-self.mouth_corner_updown_r.update(f)/1.9)-0.1
-        features["mouth_corner_updown_l"] = (-self.mouth_corner_updown_l.update(f)/1.9)-0.1
+        features["mouth_corner_updown_r"] = (-self.mouth_corner_updown_r.update(f)/2)
+        features["mouth_corner_updown_l"] = (-self.mouth_corner_updown_l.update(f)/2)
 
         #i removed some features VTS didn't seem to use
         #the VTS library was handling them not being set anyway, so I just let that deal with the fact they're not here
