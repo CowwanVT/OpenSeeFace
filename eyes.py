@@ -97,23 +97,9 @@ class Eye():
             eye_y = self.lastEyeState[0]
             eye_x = self.lastEyeState[1]
 
-        if eye_x < self.lastEyeState[1]:
-            delta = self.lastEyeState[1] - eye_x
-            delta = self.xStats.clamp(delta)
-            eye_x = self.lastEyeState[1] - delta
-        if eye_x < self.lastEyeState[1]:
-            delta = eye_x - self.lastEyeState[1]
-            delta = self.xStats.clamp(delta)
-            eye_x = self.lastEyeState[1] + delta
+        self.clampEyeX(eye_x)
 
-        if eye_y < self.lastEyeState[0]:
-            delta = self.lastEyeState[0] - eye_y
-            delta = self.yStats.clamp(delta)
-            eye_y = self.lastEyeState[0] - delta
-        if eye_y < self.lastEyeState[0]:
-            delta = eye_y - self.lastEyeState[0]
-            delta = self.yStats.clamp(delta)
-            eye_y = self.lastEyeState[0] + delta
+        self.clampEyeY(eye_x)
 
         self.lastEyeState = [eye_y, eye_x]
 
@@ -129,6 +115,27 @@ class Eye():
         self.stdDev.update(self.confidence)
         self.state  = [1.0, eye_y, eye_x, self.confidence]
         return
+
+    def clampEyeX(self, eye_x):
+        if eye_x < self.lastEyeState[1]:
+            delta = self.lastEyeState[1] - eye_x
+            delta = self.xStats.clamp(delta)
+            eye_x = self.lastEyeState[1] - delta
+        if eye_x < self.lastEyeState[1]:
+            delta = eye_x - self.lastEyeState[1]
+            delta = self.xStats.clamp(delta)
+            eye_x = self.lastEyeState[1] + delta
+
+
+    def clampEyeY(self, eye_y):
+        if eye_y < self.lastEyeState[0]:
+            delta = self.lastEyeState[0] - eye_y
+            delta = self.yStats.clamp(delta)
+            eye_y = self.lastEyeState[0] - delta
+        if eye_y < self.lastEyeState[0]:
+            delta = eye_y - self.lastEyeState[0]
+            delta = self.yStats.clamp(delta)
+            eye_y = self.lastEyeState[0] + delta
 
 class EyeTracker():
     np.float32(np.array([-2.1179, -2.0357, -1.8044]))

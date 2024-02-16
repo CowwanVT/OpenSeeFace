@@ -2,6 +2,7 @@ import numpy as np
 import math
 import featureExtractor
 import emilianaFeatureExtractor
+import apiFeatureExtractor
 
 class FaceInfo():
     face_3d = np.array([
@@ -105,9 +106,11 @@ class FaceInfo():
         else:
             self.features = emilianaFeatureExtractor.FeatureExtractor()
 
+        self.apiFeatures = apiFeatureExtractor.APIfeatureExtractor()
+        self.currentAPIFeatures = {}
+
         self.current_features = {}
         self.contour = self.face_3d[self.contourPoints]
-
 
     def update(self, result, coord):
         if result is None:
@@ -143,6 +146,7 @@ class FaceInfo():
 
         self.pts_3d = self.normalize_pts3d(self.pts_3d)
         self.current_features = self.features.update(self.pts_3d[:, 0:2])
+        self.currentAPIFeatures = self.apiFeatures.update(self.pts_3d[:, 0:2])
         self.eye_blink = []
         self.eye_blink.append(1 - min(max(-0.1, -self.current_features["eye_r"]), 1.1))
         self.eye_blink.append(1 - min(max(-0.1, -self.current_features["eye_l"]), 1.1))

@@ -1,5 +1,4 @@
 import numpy as np
-import math
 import cv2
 cv2.setNumThreads(6)
 
@@ -20,7 +19,7 @@ def matrix_to_quaternion(m):
         else:
             t = 1 + m[0,0] + m[1,1] + m[2,2]
             q = [m[1,2]-m[2,1], m[2,0]-m[0,2], m[0,1]-m[1,0], t]
-    return np.array(q) / (math.sqrt(t)* 0.5)
+    return np.array(q) / (pow(t, 0.5)* 0.5)
 
 def landmarks(tensor, crop_info):
     crop_x1, crop_y1, scale_x, scale_y = crop_info
@@ -123,7 +122,7 @@ def calculatePNPerror(lms, t_reference, image_pts ):
     if np.isnan(pnp_error):
         pnp_error = 9999999.
 
-    pnp_error = math.sqrt(pnp_error / (2.0 * image_pts.shape[0]))
+    pnp_error = pow(pnp_error / (2.0 * image_pts.shape[0]), 0.5)
     return pnp_error
 
 def estimate_depth( face, width, height):

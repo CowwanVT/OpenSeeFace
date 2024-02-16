@@ -10,10 +10,12 @@ import vts
 import cv2
 cv2.setNumThreads(6)
 import maffs
+import api
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-i", "--ip", help="Set IP address for sending tracking data", default="127.0.0.1")
 parser.add_argument("-p", "--port", type=int, help="Set port for sending tracking data", default=11573)
+parser.add_argument("-a", "--api-port", type=int, help="Set port for Vtube Studio API", default=8001)
 parser.add_argument("-W", "--width", type=int, help="Set raw RGB width", default=640)
 parser.add_argument("-H", "--height", type=int, help="Set raw RGB height", default=480)
 parser.add_argument("-F", "--fps", type=int, help="Set camera frames per second", default=24)
@@ -84,6 +86,7 @@ target_duration = 1 / (fps)
 frameQueue = queue.Queue(maxsize=1)
 faceQueue = queue.Queue(maxsize=1)
 faceInfoQueue = queue.Queue()
+featureQueue = queue.Queue()
 
 #this thread sends requests to Vtube Studio
 VTS = vts.VTS()
@@ -97,6 +100,14 @@ VTS.faceInfoQueue = faceInfoQueue
 packetSenderThread = threading.Thread(target = VTS.start)
 packetSenderThread.daemon = True
 packetSenderThread.start()
+
+api = api.VtubeStudioAPI()
+api.ip = args.ip
+api.port = args.api_port
+api.featureQueue = featureQueue
+apiThread = threading.Thread(target = api.start)
+apiThread.daemon = True
+apiThread.start()
 
 #this thread gets images from the webcam
 Webcam = webcam.Webcam()
@@ -165,6 +176,7 @@ try:
         #If we don't have something to send to Vtube Studio we don't
         if faceInfo is not None:
             faceInfoQueue.put(faceInfo)
+            featureQueue.put(faceInfo.currentAPIFeatures)
         else:
             print("No data sent to VTS")
 

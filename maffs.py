@@ -1,15 +1,26 @@
 import math
 
+def align_points( a, b, pts): #runs 6 times per frame
+
+    alpha = (math.atan2(*(b - a)[::-1]) % (math.pi *2))
+
+    if alpha >= (math.pi/2):
+        alpha = - (alpha - math.pi)
+    if alpha <= -(math.pi/2):
+        alpha = - (alpha + math.pi)
+    aligned_pts = []
+    for pt in pts:
+        aligned_pts.append(rotate(a, pt, alpha))
+    return (aligned_pts)
+
 def clamp (value, minimum, maxium):
     return max(min(value,maxium),minimum)
-
 
 def rotate(origin, point, a):
     x, y = point - origin
     a = -a
 
     qx = math.cos(a) * x - math.sin(a) * y
-
     qy = math.sin(a) * x + math.cos(a) * y
 
     qx+= origin[0]
@@ -73,8 +84,4 @@ class Stats():
             value = min( value, self.mean + (2* abs(self.getSampleVariance())))
             value = max( value, self.mean - (2* abs(self.getSampleVariance())))
             return value
-
-
-
-
 
