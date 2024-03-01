@@ -148,6 +148,8 @@ class EyeTracker():
     def get_eye_state(self, models, frame, lms):
 
         lms, faceFrame = self.extract_face(frame, np.array(lms)[:,0:2][:,::-1])
+        if faceFrame.size < 16:
+            return [[1.,0.,0.,0.],[1.,0.,0.,0.]]
 
         self.rightEye.offset = self.offset
         self.leftEye.offset = self.offset

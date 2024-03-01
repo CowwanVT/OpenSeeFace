@@ -145,8 +145,8 @@ class FaceInfo():
             return
 
         self.pts_3d = self.normalize_pts3d(self.pts_3d)
-        self.current_features = self.features.update(self.pts_3d[:, 0:2])
-        self.currentAPIFeatures = self.apiFeatures.update(self.pts_3d[:, 0:2])
+        self.current_features = self.features.update(self.pts_3d)
+        self.currentAPIFeatures = self.apiFeatures.update(self.pts_3d)
         self.eye_blink = []
         self.eye_blink.append(1 - min(max(-0.1, -self.current_features["eye_r"]), 1.1))
         self.eye_blink.append(1 - min(max(-0.1, -self.current_features["eye_l"]), 1.1))

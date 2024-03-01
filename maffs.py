@@ -1,6 +1,36 @@
 import math
 
-def align_points( a, b, pts): #runs 6 times per frame
+def euclideanDistance(ptA, ptB):
+    X = pow(ptA[0] - ptB[0], 2)
+    Y = pow(ptA[1] - ptB[1], 2)
+    Z = pow(ptA[2] - ptB[2], 2)
+    distance = math.sqrt(X + Y + Z)
+    return distance
+
+def average3d (points):
+    X = 0
+    Y = 0
+    Z = 0
+    for point in points:
+        X += point[0]
+        Y += point[1]
+        Z += point[2]
+    X /= len(points)
+    Y /= len(points)
+    Z /= len(points)
+    center = [X,Y,Z]
+    return center
+
+def distanceFromLine(point, linePointA, linePointB):
+    lenA = euclideanDistance(point, linePointA)
+    lenB = euclideanDistance(point, linePointB)
+    lenC = euclideanDistance(linePointA, linePointB)
+    distance = 2* (lenA * lenB)/lenC
+    return distance
+
+
+
+def align_points( a, b, pts):
 
     alpha = (math.atan2(*(b - a)[::-1]) % (math.pi *2))
 
