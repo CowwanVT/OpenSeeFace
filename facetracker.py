@@ -175,8 +175,11 @@ try:
 
         #If we don't have something to send to Vtube Studio we don't
         if faceInfo is not None:
-            faceInfoQueue.put(faceInfo)
-            featureQueue.put(faceInfo.currentAPIFeatures)
+            if faceInfoQueue.qsize() < 1:
+                faceInfoQueue.put(faceInfo)
+            if featureQueue.qsize() < 1:
+                featureQueue.put(faceInfo.currentAPIFeatures)
+
         else:
             print("No data sent to VTS")
 

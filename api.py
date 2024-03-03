@@ -44,14 +44,35 @@ class VtubeStudioAPI():
         self.authFail = False
         self.featureQueue = None
 
+    def sendRequest(self, request):
+        request["requestID"] = self.requestID
+        self.requestID += 1
+        response = None
+        while response is None:
+            try:
+                self.vtsWebsocket.send(json.dumps(request))
+                response = json.loads(self.vtsWebsocket.recv())
+            except:
+                self.connectToVTS()
+        return response
+
     def start(self):
-        self.vtsWebsocket = connect("ws://" + self.ip + ":" + str(self.port))
-        self.readKeyFile()
+        self.connectToVTS()
         while True:
             parameterList = self.featureQueue.get()
             if self.authenticated:
                 self.setParameters(parameterList)
 
+    def connectToVTS(self):
+        self.vtsWebsocket = None
+        while self.vtsWebsocket is None:
+            try:
+                self.vtsWebsocket = connect("ws://" + self.ip + ":" + str(self.port))
+            except:
+                time.sleep(1)
+
+        self.readKeyFile()
+        return
 
 
     def authenticate(self):
@@ -116,10 +137,7 @@ class VtubeStudioAPI():
                 "size": 0
                 }
             }
-        request["requestID"] = self.requestID
-        self.requestID += 1
-        self.vtsWebsocket.send(json.dumps(request))
-        self.vtsWebsocket.recv()
+        self.sendRequest(request)
         return
 
 
@@ -130,10 +148,7 @@ class VtubeStudioAPI():
             "requestID": "SomeID",
             "messageType": "InputParameterListRequest"
             }
-        request["requestID"] = self.requestID
-        self.requestID += 1
-        self.vtsWebsocket.send(json.dumps(request))
-        response  = json.loads(self.vtsWebsocket.recv())
+        response  = self.sendRequest(request)
         existingParameterList = []
         for parameter in response["data"]["customParameters"]:
             existingParameterList.append(parameter["name"])
@@ -162,11 +177,7 @@ class VtubeStudioAPI():
                 "defaultValue": 0
             }
         }
-        request["requestID"] = self.requestID
-        self.requestID += 1
-        request["data"]["parameterName"] = parameterName
-        self.vtsWebsocket.send(json.dumps(request))
-        response  = json.loads(self.vtsWebsocket.recv())
+        response  = self.sendRequest(request)
         return
 
     def parameterValueEntry(self, parameterName, value):
@@ -190,14 +201,11 @@ class VtubeStudioAPI():
                 "parameterValues": []
                 }
             }
-        request["requestID"] = self.requestID
-        self.requestID += 1
         for parameter in parameterList:
             if parameter[0] in self.customParameterList:
                 parameterEntry = self.parameterValueEntry(parameter[0], parameter[1])
                 request["data"]["parameterValues"].append(parameterEntry)
 
         if len(request["data"]["parameterValues"]) > 0:
-            self.vtsWebsocket.send(json.dumps(request))
-            response  = json.loads(self.vtsWebsocket.recv())
+            self.sendRequest(request)
         return
