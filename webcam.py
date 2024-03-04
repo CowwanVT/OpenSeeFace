@@ -71,7 +71,14 @@ class Webcam():
 
         crop = frame.cropGreyscale()
         averageBrightness = np.mean(crop)/256
-        self.gamma = math.log(self.targetBrightness, averageBrightness)
+        gamma = math.log(self.targetBrightness, averageBrightness)
+        if math.isnan(gamma):
+            gamma = 0.7
+        if gamma < 0.5:
+            gamma = 0.5
+        if gamma > 1.5:
+            gamma = 1.5
+        self.gamma = gamma
         return
 
 class Frame():

@@ -4,7 +4,7 @@ import maffs
 class APIfeatureExtractor():
     def __init__(self):
         self.jawOpen = feature.Feature(scaleType = 2, curve = 2)
-        self.mouthX = feature.Feature(curve = 1)
+        self.mouthX = feature.Feature(curve = 2, alpha=0.5)
         self.mouthFunnel = feature.Feature(scaleType = 2, curve = 2)
         self.mouthPucker = feature.Feature(curve = 2, alpha=0.5)
         self.mouthPressLipOpen = feature.Feature(curve = 2)
@@ -25,7 +25,7 @@ class APIfeatureExtractor():
 
 
 
-        f = maffs.average3d(pts[[58,62,50,55]])[0]
+        f = maffs.euclideanDistance(maffs.average3d(pts[[58,62]]), pts[0]) - maffs.euclideanDistance(maffs.average3d(pts[[58,62]]), pts[16])
         #f = maffs.euclideanDistance(maffs.average3d(pts[[50,55]]), maffs.average3d(pts[[12,4]]))
         #f_pts = maffs.align_points(pts[27, 0:2], pts[33, 0:2], pts[[33, 50, 55], 0:2])
         #f = (pts[50][0] + pts[55][0] )/2 - pts[33][0]
