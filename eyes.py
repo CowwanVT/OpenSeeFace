@@ -96,10 +96,8 @@ class Eye():
         if self.results[0][x,y] < confidenceThreshold:
             eye_y = self.lastEyeState[0]
             eye_x = self.lastEyeState[1]
-
         self.clampEyeX(eye_x)
-
-        self.clampEyeY(eye_x)
+        self.clampEyeY(eye_y)
 
         self.lastEyeState = [eye_y, eye_x]
 

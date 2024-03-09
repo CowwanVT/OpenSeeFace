@@ -13,7 +13,6 @@ class Feature():
         self.curve = curve
         self.scaleType = scaleType
         self.statisticalFiltering = statisticalFiltering
-        self.stdDev = maffs.Stats()
 
     def update(self, x):
         new = self.update_state(x)
@@ -21,7 +20,6 @@ class Feature():
         return self.last
 
     def update_state(self, x):
-        x = self.stdDev.clamp(x)
         if self.min is None or self.max is None:
             self.min = x - 0.00001
             self.max = x + 0.00001

@@ -38,13 +38,13 @@ class FeatureExtractor():
         #for Eyebrows and Mouth Corners I reccomend 1
 
 
-        self.eye_l = feature.Feature(scaleType = 2, curve = 0.5)
-        self.eye_r = feature.Feature(scaleType = 2, curve = 0.5)
+        self.eye_l = feature.Feature(scaleType = 2, curve = 0.5, decay=0.01)
+        self.eye_r = feature.Feature(scaleType = 2, curve = 0.5, decay=0.01)
         self.eyebrow_updown_l = feature.Feature( curve = 2)
         self.eyebrow_updown_r = feature.Feature( curve = 2)
         self.mouth_corner_updown_l = feature.Feature(curve = 2 )
         self.mouth_corner_updown_r = feature.Feature(curve = 2 )
-        self.mouth_open = feature.Feature(scaleType = 2, curve = 1)
+        self.mouth_open = feature.Feature(scaleType = 2, curve = 1, alpha=0.01)
 
     #This is the arbitrary messy math portion of how parameters work
     #most of the stuff here was set by trial and error , so it's kinda weird

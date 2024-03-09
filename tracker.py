@@ -93,7 +93,7 @@ class Tracker():
 
         self.threshold = args.threshold
         self.face = None
-        self.face_info = face.FaceInfo(args.feature_type)
+        self.face_info = face.FaceInfo()
 
     def cropFace(self, frame):
         duration_pp = 0.0

@@ -28,21 +28,6 @@ def distanceFromLine(point, linePointA, linePointB):
     distance = 2* (lenA * lenB)/lenC
     return distance
 
-
-
-def align_points( a, b, pts):
-
-    alpha = (math.atan2(*(b - a)[::-1]) % (math.pi *2))
-
-    if alpha >= (math.pi/2):
-        alpha = - (alpha - math.pi)
-    if alpha <= -(math.pi/2):
-        alpha = - (alpha + math.pi)
-    aligned_pts = []
-    for pt in pts:
-        aligned_pts.append(rotate(a, pt, alpha))
-    return (aligned_pts)
-
 def clamp (value, minimum, maxium):
     return max(min(value,maxium),minimum)
 

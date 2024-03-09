@@ -26,7 +26,6 @@ parser.add_argument("-d", "--detection-threshold", type=float, help="Set minimum
 parser.add_argument("-s", "--silent", type=int, help="Set this to 1 to prevent text output on the console", default=0)
 parser.add_argument("--model", type=int, help="This can be used to select the tracking model. Higher numbers are models with better tracking quality, but slower speed, except for model 4, which is wink optimized.", default=3, choices=[0, 1, 2, 3, 4])
 parser.add_argument("--preview", type=int, help="Preview the frames sent to the tracker", default=0)
-parser.add_argument("--feature-type", type=int, help="Sets which version of feature extraction is used. 0 is my new version that works well for me and allows for some customization, 1 is EmilianaVT's version aka, normal OpenSeeFace operation", default=0, choices=[0, 1])
 parser.add_argument("--numpy-threads", type=int, help="Numer of threads Numpy can use, doesn't seem to effect much", default=1)
 parser.add_argument("-T","--threads", type=int, help="Numer of threads used for landmark detection. Default is 1 (~15ms per frame on my computer), 2 gets slightly faster frames (~10ms on my computer), more than 2 doesn't seem to help much", default=1)
 parser.add_argument("-v", "--visualize", type=int, help="Set this to 1 to visualize the tracking", default=0)
@@ -131,8 +130,8 @@ frameTimeStats = maffs.Stats()
 latencyStats = maffs.Stats()
 
 lateFrames = 0
-frame_count = 0
-frame_start = 0.0
+frameCount = 0
+frameStart = 0.0
 sleepTime = 0.0
 frameTimeAdjustment = 0.
 tracker = Tracker(args)
@@ -146,8 +145,8 @@ trackingStart = time.perf_counter()
 #---The actual main loop---
 try:
     while True:
-        frame_start = time.perf_counter()
-        frame_count += 1
+        frameStart = time.perf_counter()
+        frameCount += 1
         frame = frameQueue.get()
         frame_get = time.perf_counter()
         webcamStats.update(frame.cameraLatency)
@@ -164,7 +163,7 @@ try:
         if visualizeFlag:
             visualize(frame, faceInfo)
 
-        duration = (time.perf_counter() - frame_start)
+        duration = (time.perf_counter() - frameStart)
 
         sleepTime = target_duration - duration + frameTimeAdjustment
         if sleepTime > 0:
@@ -183,7 +182,7 @@ try:
         else:
             print("No data sent to VTS")
 
-        timeSinceLastFrame = (time.perf_counter() - frame_start)
+        timeSinceLastFrame = (time.perf_counter() - frameStart)
         frameTimeStats.update(timeSinceLastFrame)
         latency = time.perf_counter() - frame.startTime
         latencyStats.update(latency)
@@ -216,7 +215,7 @@ print(f"Average tracking time: { (trackingTimeStats.getMean() * 1000):.3f}ms")
 
 #how long the app ran
 print(f"Run time (seconds): {(time.perf_counter() - trackingStart):.2f} s")
-print(f"Frames: {frame_count}")
-print(f"Late frames: {lateFrames}, {((lateFrames/frame_count)*100):.2f}% of frames")
+print(f"Frames: {frameCount}")
+print(f"Late frames: {lateFrames}, {((lateFrames/frameCount)*100):.2f}% of frames")
 
 os._exit(0)

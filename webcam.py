@@ -19,7 +19,7 @@ class Webcam():
         self.mirror = None
         self.frameQueue = None
         self.faceQueue = None
-        self.targetBrightness = 0.0
+        self.targetBrightness = 0.55
 
     def initialize(self):
         if os.name == 'nt':

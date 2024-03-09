@@ -1,7 +1,6 @@
 import numpy as np
 import math
 import featureExtractor
-import emilianaFeatureExtractor
 import apiFeatureExtractor
 
 class FaceInfo():
@@ -79,8 +78,7 @@ class FaceInfo():
         [-0.257990002632141,  0.276080012321472, -0.324570998549461]
         ], np.float32)
     contourPoints = [0,1,8,15,16,27,28,29,30,31,32,33,34,35]
-    def __init__(self, featureType):
-        self.featureType = featureType
+    def __init__(self):
         self.reset()
         self.alive = False
         self.coord = None
@@ -101,10 +99,8 @@ class FaceInfo():
         self.pts_3d = None
         self.eye_blink = None
         self.pnp_error = 0
-        if self.featureType == 0:
-            self.features = featureExtractor.FeatureExtractor()
-        else:
-            self.features = emilianaFeatureExtractor.FeatureExtractor()
+        self.features = featureExtractor.FeatureExtractor()
+
 
         self.apiFeatures = apiFeatureExtractor.APIfeatureExtractor()
         self.currentAPIFeatures = {}

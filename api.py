@@ -8,30 +8,7 @@ import queue
 
 class VtubeStudioAPI():
 
-    newAuthRequest = {"apiName": "VTubeStudioPublicAPI",
-        "apiVersion": "1.0",
-        "requestID": "1",
-        "messageType": "AuthenticationTokenRequest",
-        "data": {
-            "pluginName": "OpenSeeFace but not really",
-            "pluginDeveloper": "Cowwan",
-                }
-            }
-
-    authRequest = {
-        "apiName": "VTubeStudioPublicAPI",
-        "apiVersion": "1.0",
-        "requestID": "1",
-        "messageType": "AuthenticationRequest",
-        "data": {
-            "pluginName": "OpenSeeFace but not really",
-            "pluginDeveloper": "Cowwan",
-            "authenticationToken": ""
-                }
-            }
-
     customParameterList = ["JawOpen", "MouthPressLipOpen", "MouthFunnel", "MouthPucker", "EyeSquintR", "EyeSquintL", "MouthX"]
-
 
     def __init__(self):
 
@@ -76,7 +53,18 @@ class VtubeStudioAPI():
 
 
     def authenticate(self):
-        request = self.authRequest
+        request = {
+            "apiName": "VTubeStudioPublicAPI",
+            "apiVersion": "1.0",
+            "requestID": "1",
+            "messageType": "AuthenticationRequest",
+            "data": {
+                "pluginName": "OpenSeeFace but not really",
+                "pluginDeveloper": "Cowwan",
+                "authenticationToken": ""
+                        }
+                    }
+
         request["data"]["authenticationToken"] = self.authKey
         request["requestID"] = self.requestID
         self.requestID += 1
@@ -107,7 +95,15 @@ class VtubeStudioAPI():
 
     def getNewAuthKey(self):
         self.keyFile = open("./apiKey", "w")
-        request = self.newAuthRequest
+        request = {"apiName": "VTubeStudioPublicAPI",
+            "apiVersion": "1.0",
+            "requestID": "1",
+            "messageType": "AuthenticationTokenRequest",
+            "data": {
+                "pluginName": "OpenSeeFace but not really",
+                "pluginDeveloper": "Cowwan",
+                        }
+                    }
         request["requestID"] = self.requestID
         self.requestID += 1
         self.vtsWebsocket.send(json.dumps(request))
@@ -121,25 +117,6 @@ class VtubeStudioAPI():
         else:
             print("VTS Authentication Failed")
             return
-
-    def rotateModel(self):
-        request = {
-            "apiName": "VTubeStudioPublicAPI",
-            "apiVersion": "1.0",
-            "requestID": "2",
-            "messageType": "MoveModelRequest",
-            "data": {
-                "timeInSeconds": 0.033333,
-                "valuesAreRelativeToModel": True,
-                "positionX": 0,
-                "positionY": 0,
-                "rotation": 45,
-                "size": 0
-                }
-            }
-        self.sendRequest(request)
-        return
-
 
     def requestParameterList(self):
         request = {
@@ -161,7 +138,6 @@ class VtubeStudioAPI():
             if parameter not in existingParameterList:
                 self.createCustomParamter(parameter)
         return
-
 
     def createCustomParamter(self, parameterName):
         request = {
