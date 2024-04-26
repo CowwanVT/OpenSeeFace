@@ -6,7 +6,6 @@ import queue
 import time
 from tracker import Tracker
 import webcam
-import vts
 import cv2
 cv2.setNumThreads(6)
 import maffs
@@ -87,18 +86,6 @@ faceQueue = queue.Queue(maxsize=1)
 faceInfoQueue = queue.Queue()
 featureQueue = queue.Queue()
 
-#this thread sends requests to Vtube Studio
-VTS = vts.VTS()
-VTS.targetIP = args.ip
-VTS.targetPort = args.port
-VTS.silent = silent
-VTS.width = args.width
-VTS.height = args.height
-VTS.faceInfoQueue = faceInfoQueue
-
-packetSenderThread = threading.Thread(target = VTS.start)
-packetSenderThread.daemon = True
-packetSenderThread.start()
 
 api = api.VtubeStudioAPI()
 api.ip = args.ip
@@ -174,8 +161,6 @@ try:
 
         #If we don't have something to send to Vtube Studio we don't
         if faceInfo is not None:
-            if faceInfoQueue.qsize() < 1:
-                faceInfoQueue.put(faceInfo)
             if featureQueue.qsize() < 1:
                 featureQueue.put(faceInfo.currentAPIFeatures)
 
