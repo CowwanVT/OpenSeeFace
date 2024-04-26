@@ -4,7 +4,7 @@ import maffs
 #I redid a lot of this so it worked well for me
 #idk if it'll work well for other people
 class Feature():
-    def __init__(self, alpha=0.1, decay=0.0001, curve=1, scaleType = 1, statisticalFiltering = 1):
+    def __init__(self, alpha=0.1, decay=0.0001, curve=1, scaleType = 1):
         self.min = None
         self.max = None
         self.alpha = alpha
@@ -12,7 +12,7 @@ class Feature():
         self.last = 0.0
         self.curve = curve
         self.scaleType = scaleType
-        self.statisticalFiltering = statisticalFiltering
+        self.stats = maffs.Stats()
 
     def update(self, x):
         new = self.update_state(x)
@@ -41,5 +41,13 @@ class Feature():
         if self.scaleType == 2:
             #Returns a value between 0 and 1 in relation to the maximum range
                 return pow(maffs.clamp((x - self.min) / (self.max - self.min), 0, 1), self.curve)
+        if self.scaleType ==3:
+            self.stats.update(x)
+            #Returns a value between -1 and 1 in relation to the maximum range, 0 is the mean
+            if x < self.stats.mean:
+                return -pow(maffs.clamp((x - self.stats.mean) / (self.min - self.stats.mean), 0, 1), self.curve)
+            elif x > self.stats.mean:
+                return pow(maffs.clamp((x - self.stats.mean) / (self.max - self.stats.mean), 0, 1), self.curve)
+            return 0
         return 0
 

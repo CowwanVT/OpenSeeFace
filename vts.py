@@ -33,7 +33,7 @@ class VTS():
         while True:
             faceInfo = self.faceInfoQueue.get()
             packet = self.preparePacket(faceInfo)
-            self.sendPacket(packet)
+            #self.sendPacket(packet)
 
     def preparePacket(self, face):
         packet = bytearray()

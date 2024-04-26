@@ -44,7 +44,7 @@ class FeatureExtractor():
         self.eyebrow_updown_r = feature.Feature( curve = 2)
         self.mouth_corner_updown_l = feature.Feature(curve = 2 )
         self.mouth_corner_updown_r = feature.Feature(curve = 2 )
-        self.mouth_open = feature.Feature(scaleType = 2, curve = 1, alpha=0.01)
+        self.mouth_open = feature.Feature(scaleType = 2, curve = 0.5, alpha=0.01)
 
     #This is the arbitrary messy math portion of how parameters work
     #most of the stuff here was set by trial and error , so it's kinda weird
@@ -81,7 +81,7 @@ class FeatureExtractor():
 
         f = maffs.euclideanDistance(maffs.average3d(pts[[59, 60, 61]]), maffs.average3d(pts[[65, 64, 63]]))
         #f = ( (pts[59][1] + pts[60][1] + pts[61][1]  )/3 - (pts[65][1] + pts[64][1] + pts[63][1])/3) * (norm_distance_y)
-        features["mouth_open"] = self.mouth_open.update(f) * 0.55
+        features["mouth_open"] = self.mouth_open.update(f)
 
         #mouth corners are calculated together so they are assigned the same value
         f = (((pts[58][1] + pts[62][1])/2) - (pts[60][1])+( pts[60][1] - pts[64][1])*0.325-0.5)#/ norm_distance_y

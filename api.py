@@ -8,7 +8,7 @@ import queue
 
 class VtubeStudioAPI():
 
-    customParameterList = ["JawOpen", "MouthPressLipOpen", "MouthFunnel", "MouthPucker", "EyeSquintR", "EyeSquintL", "MouthX"]
+    customParameterList = ["JawOpen", "MouthPressLipOpen", "MouthFunnel", "MouthPucker", "EyeSquintR", "EyeSquintL", "MouthX", "MouthOpen", "EyeOpenLeft", "EyeOpenRight", "MouthSmile", "BrowLeftY", "BrowRightY", "Brows", "FaceAngleY", "FaceAngleZ", "FaceAngleX", "EyeRightX", "EyeRightY", "EyeLeftX", "EyeLeftY"]
 
     def __init__(self):
 

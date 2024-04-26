@@ -85,6 +85,7 @@ class FaceInfo():
         self.base_scale_v = self.face_3d[27:30, 1] - self.face_3d[28:31, 1]
         self.base_scale_h = np.abs(self.face_3d[[0, 36, 42], 0] - self.face_3d[[16, 39, 45], 0])
         self.fail_count = 0
+        self.frameNumber = 0
 
     def reset(self):
         self.alive = False
@@ -137,12 +138,15 @@ class FaceInfo():
         return pts_3d
 
     def adjust_3d(self):
-        if self.conf < 0.4 or self.pnp_error > 300:
+        self.frameNumber += 1
+        if self.conf < 0.6 or self.pnp_error > 300:
             return
 
         self.pts_3d = self.normalize_pts3d(self.pts_3d)
+        if self.frameNumber < 30:
+            return
         self.current_features = self.features.update(self.pts_3d)
-        self.currentAPIFeatures = self.apiFeatures.update(self.pts_3d)
+        self.currentAPIFeatures = self.apiFeatures.update(self.pts_3d, self.rotation)
         self.eye_blink = []
         self.eye_blink.append(1 - min(max(-0.1, -self.current_features["eye_r"]), 1.1))
         self.eye_blink.append(1 - min(max(-0.1, -self.current_features["eye_l"]), 1.1))

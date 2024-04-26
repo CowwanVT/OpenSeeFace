@@ -95,6 +95,7 @@ class Tracker():
         self.face = None
         self.face_info = face.FaceInfo()
 
+
     def cropFace(self, frame):
         duration_pp = 0.0
         x,y,w,h = self.face
