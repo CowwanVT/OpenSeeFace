@@ -124,7 +124,6 @@ class Eye():
             delta = self.xStats.clamp(delta)
             eye_x = self.lastEyeState[1] + delta
 
-
     def clampEyeY(self, eye_y):
         if eye_y < self.lastEyeState[0]:
             delta = self.lastEyeState[0] - eye_y

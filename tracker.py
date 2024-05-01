@@ -153,7 +153,7 @@ class Tracker():
             return self.early_exit("Confidence below threshold", start)
 
         eye_state = self.EyeTracker.get_eye_state(self.model, frame, lms)
-        self.face_info.update((confidence, (lms, eye_state)), np.array(lms)[:, 0:2].mean(0))
+        self.face_info.update((confidence, (lms, eye_state)))
 
 
         duration_model = 1000 * (time.perf_counter() - start_model)

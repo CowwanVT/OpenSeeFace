@@ -4,22 +4,20 @@ import maffs
 class APIfeatureExtractor():
     def __init__(self):
         self.jawOpen = feature.Feature(scaleType = 2, curve = 2)
-        self.mouthX = feature.Feature(curve = 1, alpha=0.75)
-        self.mouthFunnel = feature.Feature(scaleType = 2, curve = 2)
-        self.mouthPucker = feature.Feature(curve = 2, alpha=0.5)
-        self.mouthPressLipOpen = feature.Feature(curve = 2)
+        self.mouthX = feature.Feature(curve = 1, alpha=0.75, scaleType = 3)
+        self.mouthPucker = feature.Feature(curve = 2)
         self.eyeSquintR = feature.Feature(scaleType = 2, curve = 1)
         self.eyeSquintL = feature.Feature(scaleType = 2, curve = 1)
-        self.mouthOpen = feature.Feature(scaleType = 2, curve = 0.5, alpha=0.01)
+        self.mouthOpen = feature.Feature(scaleType = 2, curve = 0.5, decay=0.01)
         self.eyeOpenLeft = feature.Feature(scaleType = 2, curve = 1, decay=0.01)
         self.eyeOpenRight = feature.Feature(scaleType = 2, curve = 1, decay=0.01)
         self.browLeftY = feature.Feature( curve = 2)
         self.browRightY = feature.Feature( curve = 2)
         self.mouthSmile= feature.Feature(curve = 2 )
         self.brows = feature.Feature( curve = 2)
-        self.faceAngleX = feature.Feature( curve = 1.5, alpha=0.3, scaleType = 3)
-        self.faceAngleY = feature.Feature( curve = 1.5, alpha=0.6, scaleType = 3)
-        self.faceAngleZ = feature.Feature( curve = 1.5, alpha=0.3, scaleType = 3)
+        self.faceAngleX = feature.Feature( curve = 1, alpha=0.3, scaleType = 3)
+        self.faceAngleY = feature.Feature( curve = 1, alpha=0.6, scaleType = 3)
+        self.faceAngleZ = feature.Feature( curve = 1, alpha=0.6, scaleType = 3)
         self.eyeX = feature.Feature(  scaleType = 3)
         self.eyeY = feature.Feature(scaleType = 3)
 
@@ -46,13 +44,12 @@ class APIfeatureExtractor():
         f = maffs.euclideanDistance(maffs.average3d(pts[[59, 60, 61]]), maffs.average3d(pts[[65, 64, 63]]))
         mouth = self.mouthOpen.update(f)
 
-        if mouth < 0.1:
+        if mouth < 0.2:
             mouth = -0.1
         features.append(["MouthOpen", mouth])
 
         f = maffs.euclideanDistance(maffs.average3d(pts[[42,45]]), maffs.average3d(pts[[43,44]]))
         eyeLeft = self.eyeOpenLeft.update(f)
-
 
         f = maffs.euclideanDistance(maffs.average3d(pts[[36,39]]), maffs.average3d(pts[[37,38]]))
         eyeRight = self.eyeOpenLeft.update(f)
@@ -60,7 +57,6 @@ class APIfeatureExtractor():
 
         if eye < 0.1:
             eye = -0.1
-
 
         features.append(["EyeOpenRight", eye])
         features.append(["EyeOpenLeft", eye])
@@ -87,12 +83,14 @@ class APIfeatureExtractor():
         features.append(["EyeRightY", bothEyesY])
         features.append(["EyeLeftY", bothEyesY])
 
-        f = pts[0][2] - pts[16][2]
-        features.append(["FaceAngleX", 30 * self.faceAngleX.update(f)])
-        f = pts[30][1] - pts[33][1]
-        features.append(["FaceAngleY", 10 * self.faceAngleY.update(f)])
         f = rotation[0]
-        features.append(["FaceAngleZ", 30 * self.faceAngleZ.update(f)])
-        #features.append(["FaceAngleZ", 0])
+        xAxis =  30 * self.faceAngleX.update(f)
+        features.append(["FaceAngleX",xAxis])
+
+        f = -rotation[1]
+        features.append(["FaceAngleY", 20 * self.faceAngleY.update(f)])
+
+        f = rotation[2]
+        features.append(["FaceAngleZ", (30 * self.faceAngleZ.update(f)) - (xAxis/3) ])
 
         return(features)

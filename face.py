@@ -1,6 +1,5 @@
 import numpy as np
 import math
-import featureExtractor
 import apiFeatureExtractor
 
 class FaceInfo():
@@ -81,11 +80,10 @@ class FaceInfo():
     def __init__(self):
         self.reset()
         self.alive = False
-        self.coord = None
         self.base_scale_v = self.face_3d[27:30, 1] - self.face_3d[28:31, 1]
         self.base_scale_h = np.abs(self.face_3d[[0, 36, 42], 0] - self.face_3d[[16, 39, 45], 0])
         self.fail_count = 0
-        self.frameNumber = 0
+        self.headRotation = None
 
     def reset(self):
         self.alive = False
@@ -95,26 +93,17 @@ class FaceInfo():
         self.rotation = np.array([0.0, 0.0, 0.0])
         self.translation = np.array([0.0, 0.0, 0.0])
         self.success = None
-        self.quaternion = None
-        self.euler = None
         self.pts_3d = None
-        self.eye_blink = None
         self.pnp_error = 0
-        self.features = featureExtractor.FeatureExtractor()
-
-
         self.apiFeatures = apiFeatureExtractor.APIfeatureExtractor()
         self.currentAPIFeatures = {}
-
-        self.current_features = {}
         self.contour = self.face_3d[self.contourPoints]
 
-    def update(self, result, coord):
+    def update(self, result):
         if result is None:
             self.reset()
         else:
             self.conf, (self.lms, self.eye_state) = result
-            self.coord = coord
             self.alive = True
 
     def normalize_pts3d(self, pts_3d):
@@ -122,7 +111,6 @@ class FaceInfo():
         pts_3d[:, 0:2] -= pts_3d[30, 0:2]
         alpha = math.atan2(*((pts_3d[27, 0:2]) - pts_3d[30, 0:2])[::-1])
         alpha = alpha % (2*math.pi)
-
         cosalpha = math.cos(alpha-(math.pi/2))
         sinalpha = math.sin(alpha-(math.pi/2))
 
@@ -138,15 +126,9 @@ class FaceInfo():
         return pts_3d
 
     def adjust_3d(self):
-        self.frameNumber += 1
         if self.conf < 0.6 or self.pnp_error > 300:
             return
 
         self.pts_3d = self.normalize_pts3d(self.pts_3d)
-        if self.frameNumber < 30:
-            return
-        self.current_features = self.features.update(self.pts_3d)
-        self.currentAPIFeatures = self.apiFeatures.update(self.pts_3d, self.rotation)
-        self.eye_blink = []
-        self.eye_blink.append(1 - min(max(-0.1, -self.current_features["eye_r"]), 1.1))
-        self.eye_blink.append(1 - min(max(-0.1, -self.current_features["eye_l"]), 1.1))
+        self.currentAPIFeatures = self.apiFeatures.update(self.pts_3d, self.headRotation)
+

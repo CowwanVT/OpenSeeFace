@@ -46,8 +46,7 @@ class Feature():
             #Returns a value between -1 and 1 in relation to the maximum range, 0 is the mean
             if x < self.stats.mean:
                 return -pow(maffs.clamp((x - self.stats.mean) / (self.min - self.stats.mean), 0, 1), self.curve)
-            elif x > self.stats.mean:
+            else:
                 return pow(maffs.clamp((x - self.stats.mean) / (self.max - self.stats.mean), 0, 1), self.curve)
-            return 0
         return 0
 

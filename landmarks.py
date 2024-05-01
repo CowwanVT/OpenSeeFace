@@ -1,25 +1,7 @@
 import numpy as np
 import cv2
+import math
 cv2.setNumThreads(6)
-
-def matrix_to_quaternion(m):
-    t = 0.0
-    q = [0.0, 0.0, 0, 0.0]
-    if m[2,2] < 0:
-        if m[0,0] > m[1,1]:
-            t = 1 + m[0,0] - m[1,1] - m[2,2]
-            q = [t, m[0,1]+m[1,0], m[2,0]+m[0,2], m[1,2]-m[2,1]]
-        else:
-            t = 1 - m[0,0] + m[1,1] - m[2,2]
-            q = [m[0,1]+m[1,0], t, m[1,2]+m[2,1], m[2,0]-m[0,2]]
-    else:
-        if m[0,0] < -m[1,1]:
-            t = 1 - m[0,0] - m[1,1] + m[2,2]
-            q = [m[2,0]+m[0,2], m[1,2]+m[2,1], t, m[0,1]-m[1,0]]
-        else:
-            t = 1 + m[0,0] + m[1,1] + m[2,2]
-            q = [m[1,2]-m[2,1], m[2,0]-m[0,2], m[0,1]-m[1,0], t]
-    return np.array(q) / (pow(t, 0.5)* 0.5)
 
 def landmarks(tensor, crop_info):
     crop_x1, crop_y1, scale_x, scale_y = crop_info
@@ -141,6 +123,13 @@ def estimate_depth( face, width, height):
 
     rmat, _ = cv2.Rodrigues(face.rotation)
 
+    rotationScale = math.sqrt(rmat[1][2] * rmat[1][2] + rmat[2][2]* rmat[2][2])
+    xAxis = math.asin(rmat[1][2]/rotationScale)*180/3.14
+    zAxis =math.atan2(rmat[0][1], rmat[0][0])*180/3.14
+    yAxis =math.atan2(-rmat[0][2],rotationScale)*180/3.14
+    face.headRotation = [xAxis, yAxis, zAxis]
+
+
     t_reference = face.face_3d.dot(rmat.transpose())
     t_reference = t_reference + face.translation
     t_reference = t_reference.dot(camera.transpose())
@@ -172,11 +161,7 @@ def estimate_depth( face, width, height):
     else:
         face.fail_count = 0
 
-    euler = cv2.RQDecomp3x3(rmat)[0]
-
     face.success = True
-    face.quaternion = matrix_to_quaternion(rmat)
-    face.euler = euler
     face.pnp_error = pnp_error
     face.pts_3d = pts_3d
     face.lms = lms
