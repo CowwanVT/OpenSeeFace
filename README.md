@@ -35,9 +35,17 @@ setup is now complete, you can run the face tracker with "py facetracker.py" fol
 * `-a` or `--api-port` sets the target port for the VTS api
 * `-W` or `--width` sets the webcam capture width, defaults to 640 (Note: going above 640x480 can cause the webcam latency to go higher without much benefit)
 * `-H` or `--height` sets the webcam capture height
-* `-F` or `--fps` sets the webcam fps and target tracking fps. Defaults to 24 just to be safe, 30 should be fine for most webcams. Setting this to 60 is inadvisable because I've never managed to keep my frame times consistently below 16.6666ms while testing under load, but maybe you'll have better luck with it.
+* `-F` or `--fps` sets the webcam fps and target tracking fps. Defaults to 24 just to be safe, 30 should be fine for most webcams. Setting this to 60 is inadvisable because I've never managed to keep my frame times consistently below 16.6666ms while testing, but it might work with `--threads 2`
 * `-c` or `--capture` sets the camera ID, mostly used for when you have multiple webcams
-* 
+* `-M` or `--mirror-imput` flips the webcam input
+* `-t` or `--threshold` sets the minimum confidence threshold for face tracking, valid values are decimals between 0 and 1, defaults to 0.7
+* `-d` or `--detection-threshold` sets the minimum confidence threshold for face detection, valid values are decibals between 0 and 1, defaults to 0.7
+* `-s` or `--silent` disables the stats printed to the console every frame (currently not implemented)
+* `--model` sets the tracking model, valid values are 0,1,2,3,4 defaults to 3. Model 4 has better winking, models 0-2 are faster but less accurate
+* `--preview` when set to 1 shows the webcam output pre-tracking, useful for tracking down tracking issues
+* `-T` or `--threads` sets the number of threads used by the landmark detection model. Default is 1, 2 seems to get a decent speedup at the cost of higher cpu usage. Values higher than 2 don't seem to have any effect.
+* `-v` or `--visualize` setting this to 1 enables a preview with a landmarks displayed, probably broken at the moment
+* `--target-brightness` sets the garget brightness for gamma correction. Values are decimals between 0.25 and 0.75, default is 0.55
 
 
 I'll update this readme to explain more later, but first I need to actually upload all my changes. I didn't expect this to turn into something I wanted to upload. 
