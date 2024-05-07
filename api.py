@@ -31,10 +31,12 @@ class VtubeStudioAPI():
                 response = json.loads(self.vtsWebsocket.recv())
             except:
                 self.connectToVTS()
+
         return response
 
     def start(self):
         self.connectToVTS()
+        self.createParameters()
         while True:
             parameterList = self.featureQueue.get()
             if self.authenticated:
@@ -153,7 +155,10 @@ class VtubeStudioAPI():
                 "defaultValue": 0
             }
         }
+
+        request["data"]["parameterName"] = parameterName
         response  = self.sendRequest(request)
+
         return
 
     def parameterValueEntry(self, parameterName, value):
