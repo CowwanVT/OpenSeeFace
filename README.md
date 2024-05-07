@@ -17,7 +17,7 @@ I now specifically target Vtube Studio, all communication is done over the VTS A
 * run "python3 -m venv .venv" then "source .venv/bin/activate" to create a virtual environment and activate it
 * run "pip install numpy opencv-python onnxruntime pillow websockets"
 
-that's the setup complete, now you can either run "./facetracking.sh" to use my preferred settings, or "python3 facetracker.py" followed by your preferred command line arguments
+that's the setup complete, now you can run the face tracker with "python3 facetracker.py" followed by your preferred command line arguments
 
 
 
@@ -28,9 +28,16 @@ that's the setup complete, now you can either run "./facetracking.sh" to use my 
 * download, extract, and navigate to the source code in CMD or powershell
 * run "py -m pip install numpy opencv-python onnxruntime pillow websockets"
 
-setup is now complete, you can run the face tracker with "py facetracker.py", unfortunately I don't use windows and don't have a handy .bat file to handle everything
+setup is now complete, you can run the face tracker with "py facetracker.py" followed by any command line arguments you need
 
-
+## Command Line Arguments
+* `-i` or `--ip` sets the target IP if it's not the local machine for some reason
+* `-a` or `--api-port` sets the target port for the VTS api
+* `-W` or `--width` sets the webcam capture width, defaults to 640 (Note: going above 640x480 can cause the webcam latency to go higher without much benefit)
+* `-H` or `--height` sets the webcam capture height
+* `-F` or `--fps` sets the webcam fps and target tracking fps. Defaults to 24 just to be safe, 30 should be fine for most webcams. Setting this to 60 is inadvisable because I've never managed to keep my frame times consistently below 16.6666ms while testing under load, but maybe you'll have better luck with it.
+* `-c` or `--capture` sets the camera ID, mostly used for when you have multiple webcams
+* 
 
 
 I'll update this readme to explain more later, but first I need to actually upload all my changes. I didn't expect this to turn into something I wanted to upload. 
