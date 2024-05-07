@@ -47,6 +47,25 @@ setup is now complete, you can run the face tracker with "py facetracker.py" fol
 * `-v` or `--visualize` setting this to 1 enables a preview with a landmarks displayed, probably broken at the moment
 * `--target-brightness` sets the garget brightness for gamma correction. Values are decimals between 0.25 and 0.75, default is 0.55
 
+## Changes from OpenSeeFace
+* Major restructure  
+  * Separated major functions into discrete files
+  * Larger focus on use of objects
+* Webcam and VTS communication are now done in separate threads
+* VTS communication is now done via API
+* Added some Vbridger parameters
+* Added brightness correction to webcam input, which should help with low light conditions
+* Changed parameter calculations
+  * Normalization has been changed to a completely new model
+  * Added response curves to parameters
+  * Parameters now use Eucledian distance instead of X/Y distances
+  * All VTS values are now treated as parameters
+  * Completely changed parameter calculations
+* Added functionality to mitigate errant eye movements
+* Reduced camera latency
+* Main thread now skips late frames
+* Reduced the threads used by OpenCV
+* Various optimizations
 
 I'll update this readme to explain more later, but first I need to actually upload all my changes. I didn't expect this to turn into something I wanted to upload. 
 
