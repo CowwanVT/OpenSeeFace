@@ -1,20 +1,14 @@
-This is kind of a personal project, but it spiraled out of control and I figured I'd share it in case anyone else can make use of it.
+This is kind of a personal project, but it spiraled out of control and I figured I'd share it in case anyone else can make use of it. I make no promises to the quality of this code or the reliablity of it and I am not responsible if this somehow causes you issues.
 
-I make no promises to the quality of this code or the reliablity of it
+I have drastically restructured this, but I'm listing it as a fork because this is still based on emilianavt's work. 
 
-I am not responsible if this somehow causes you issues
-
-I have drastically restructured this, but I'm listing it as a fork because this is still based on emilianavt's work.
-
-I am specifically targeting Vtube Studio on Linux, some stuff was changed to make it work with VTS, idk how well it works with VeeSeeFace at this point. I have tested that the webcam at least works in windows.
-
-This is also very much tuned to how I use it and what works best for me, so I make no promises there
+I now specifically target Vtube Studio, all communication is done over the VTS API. 
 
 How to use:
 
 Linux:
 
-install python
+install python, virtualenv, and pip
 
 download the source code (there is no release, it's just python scripts)
 
