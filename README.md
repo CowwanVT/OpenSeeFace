@@ -128,6 +128,6 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 
-idk, I didn't plan to get this far
-feel free to use my software and code for whatever, it'd be nice to get credit if you do
+idk, I didn't plan to get this far  
+feel free to use my software and code for whatever, it'd be nice to get credit if you do  
 Just don't do anything to get me sued, or harass people, or make hateful content
