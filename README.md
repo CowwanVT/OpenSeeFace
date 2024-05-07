@@ -103,7 +103,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 BSD 2-Clause License
 
-Copyright (c) 2024, Cowwan (https://twitter.com/Emiliana_vt / https://github.com/emilianavt/)
+Copyright (c) 2024, Cowwan (https://github.com/CowwanVT/ https://bsky.app/profile/cowwan.bsky.social https://www.twitch.tv/cowwan)
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
