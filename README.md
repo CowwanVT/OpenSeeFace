@@ -1,3 +1,4 @@
+#A fork of OpenSeeFace
 This is kind of a personal project, but it spiraled out of control and I figured I'd share it in case anyone else can make use of it. I make no promises to the quality of this code or the reliablity of it and I am not responsible if this somehow causes you issues.
 
 I have drastically restructured this, but I'm listing it as a fork because this is still based on emilianavt's work. 
