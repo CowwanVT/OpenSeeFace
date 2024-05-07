@@ -4,7 +4,9 @@ This is kind of a personal project, but it spiraled out of control and I figured
 
 I have drastically restructured this, but I'm listing it as a fork because this is still based on emilianavt's work. 
 
-I now specifically target Vtube Studio, all communication is done over the VTS API. 
+I now exclusively target Vtube Studio, all communication is done over the VTS API.
+
+For more technical explainations on the face tracking and computer vision models see EmilianaVT's documentation https://github.com/emilianavt/OpenSeeFace
 
 ## How to use:
 
@@ -67,13 +69,65 @@ setup is now complete, you can run the face tracker with "py facetracker.py" fol
 * Reduced the threads used by OpenCV
 * Various optimizations
 
-I'll update this readme to explain more later, but first I need to actually upload all my changes. I didn't expect this to turn into something I wanted to upload. 
+## License 
 
-For documentation on how openseeface works and the computer vision models, go see https://github.com/emilianavt/OpenSeeFace
-I don't want to leave documentation here that makes it seem like this is all my work
+### For the original code I modified and the computer vision models:
+
+BSD 2-Clause License
+
+Copyright (c) 2019, Emiliana (https://twitter.com/Emiliana_vt / https://github.com/emilianavt/)
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+### For the parts of the code written/modified by me:
+
+BSD 2-Clause License
+
+Copyright (c) 2024, Cowwan (https://twitter.com/Emiliana_vt / https://github.com/emilianavt/)
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
 
 
-Seriously, emilianavt did all the hard work
-
-
-actual documentation is in the README.txt because working in plain text is easier than making github's markdown cooperate
+idk, I didn't plan to get this far
+feel free to use my software and code for whatever, it'd be nice to get credit if you do
+Just don't do anything to get me sued, or harass people, or make hateful content
