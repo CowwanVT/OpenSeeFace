@@ -4,9 +4,9 @@ I have drastically restructured this, but I'm listing it as a fork because this 
 
 I now specifically target Vtube Studio, all communication is done over the VTS API. 
 
-How to use:
+##How to use:
 
-Linux:
+###Linux:
 
 install python, virtualenv, and pip
 
@@ -24,7 +24,7 @@ that's the setup complete, now you can either run "./facetracking.sh" to use my 
 
 
 
-Windows:
+###Windows:
 
 install python (be sure to check the box to add it to the environment variables)
 
