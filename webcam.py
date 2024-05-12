@@ -10,6 +10,7 @@ import math
 
 class Webcam():
     def __init__(self):
+        self.cameraID = 0
         self.width = 0
         self.height = 0
         self.fps = 0

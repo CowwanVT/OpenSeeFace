@@ -96,6 +96,7 @@ apiThread.start()
 
 #this thread gets images from the webcam
 Webcam = webcam.Webcam()
+Webcam.cameraID = args.capture
 Webcam.width = args.width
 Webcam.height = args.height
 Webcam.fps = args.fps
