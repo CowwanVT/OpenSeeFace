@@ -119,7 +119,7 @@ class Eye():
             delta = self.lastEyeState[1] - eye_x
             delta = self.xStats.clamp(delta)
             eye_x = self.lastEyeState[1] - delta
-        if eye_x < self.lastEyeState[1]:
+        if eye_x > self.lastEyeState[1]:
             delta = eye_x - self.lastEyeState[1]
             delta = self.xStats.clamp(delta)
             eye_x = self.lastEyeState[1] + delta
@@ -129,7 +129,7 @@ class Eye():
             delta = self.lastEyeState[0] - eye_y
             delta = self.yStats.clamp(delta)
             eye_y = self.lastEyeState[0] - delta
-        if eye_y < self.lastEyeState[0]:
+        if eye_y > self.lastEyeState[0]:
             delta = eye_y - self.lastEyeState[0]
             delta = self.yStats.clamp(delta)
             eye_y = self.lastEyeState[0] + delta
