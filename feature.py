@@ -4,7 +4,7 @@ import maffs
 #I redid a lot of this so it worked well for me
 #idk if it'll work well for other people
 class Feature():
-    def __init__(self, alpha=0.1, decay=0.00001, curve=1, scaleType = 1):
+    def __init__(self, alpha=0.1, decay=0.00001, curve=1, scaleType = 1, intertia = 0.1):
         self.min = None
         self.max = None
         self.alpha = alpha
@@ -13,11 +13,27 @@ class Feature():
         self.curve = curve
         self.scaleType = scaleType
         self.stats = maffs.Stats()
+        self.intertia = intertia #acceleration limit
+        self.previousValue =  0.0
+        self.previousSpeed = 0.0
+        self.previousAcceleration = 0.0
+
 
     def update(self, x):
         new = self.update_state(x)
-        self.last = self.last * self.alpha + new * (1 - self.alpha)
-        return self.last
+
+        speed = new - self.previousValue
+
+        acceleration = speed - self.previousSpeed
+        acceleration = maffs.clamp(acceleration, -self.intertia , self.intertia )
+
+        speed = acceleration + self.previousSpeed
+        new = speed + self.previousValue
+        self.previousValue = new
+        self.previousSpeed = speed
+        self.previousAcceleration = acceleration
+
+        return new
 
     def update_state(self, x):
         if self.min is None or self.max is None:

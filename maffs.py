@@ -80,13 +80,13 @@ class Stats():
         return self.mean
 
     def getVariance(self):
-        if self.count > 2:
+        if self.count > 30:
             return math.sqrt(self.M2/self.count)
         else:
             return 0.
 
     def getSampleVariance(self):
-        if self.count > 2:
+        if self.count > 30:
             return math.sqrt(self.M2/(self.count-1))
         else:
             return 0.
