@@ -1,68 +1,88 @@
 import maffs
 
-
-#I redid a lot of this so it worked well for me
-#idk if it'll work well for other people
 class Feature():
-    def __init__(self, alpha=0.1, decay=0.00001, curve=1, scaleType = 1, intertia = 0.1):
-        self.min = None
-        self.max = None
-        self.alpha = alpha
+    def __init__(self,decay=0.00001, curve=1, scaleType = 1,  spring = 1, friction = 0.5, mass = 2, standardDeviations = 3):
+        self.minimum = None
+        self.maximum = None
+        self.span = None
+        self.calibrate = None
+        self.calibrated = False
         self.decay = decay
         self.last = 0.0
         self.curve = curve
         self.scaleType = scaleType
         self.stats = maffs.Stats()
-        self.intertia = intertia #acceleration limit
-        self.previousValue =  0.0
-        self.previousSpeed = 0.0
-        self.previousAcceleration = 0.0
+        self.standardDeviations = standardDeviations
+        self.mass = mass
+        self.speed = 0
+        self.old = 0
+        self.spring = spring
+        self.friction = friction
+        self.calibrated = False
 
+    def update(self, value, calibrate):
+        if value is None:
+            return 0
+        self.calibrate = calibrate
 
-    def update(self, x):
-        new = self.update_state(x)
+        if self.scaleType == 1:
+            normalizedValue = self.normalizeDoubleSided(value)
+        else:
+            normalizedValue = self.normalizeSingleSided(value)
+            self.decaySpan()
 
-        speed = new - self.previousValue
+        if self.calibrated == False:
+            if self.calibrate == True:
+                self.calibrated = True
+            else:
+                return 0
+        new = normalizedValue
 
-        acceleration = speed - self.previousSpeed
-        acceleration = maffs.clamp(acceleration, -self.intertia , self.intertia )
+        momentum = self.speed * self.mass
+        delta =  new - self.old
+        force = delta * self.spring
+        momentum = momentum + force
+        self.speed = momentum/self.mass
+        self.speed = self.speed * (1- self.friction)
 
-        speed = acceleration + self.previousSpeed
-        new = speed + self.previousValue
-        self.previousValue = new
-        self.previousSpeed = speed
-        self.previousAcceleration = acceleration
+        new = self.old + self.speed
+        self.old = new
 
         return new
 
-    def update_state(self, x):
-        if self.min is None or self.max is None:
-            self.min = x - 0.00001
-            self.max = x + 0.00001
-        self.min = min(self.min, x)
-        self.max = max(self.max, x)
-        center = (self.min+self.max)/2
-
+    def decaySpan(self):
         #The Min and Max decay slightly toward each other every frame allowing the range to change dynamically
-        self.min = (self.min * (1 - self.decay)) + (self.max * self.decay)
-        self.max = (self.max * (1 - self.decay)) + (self.min * self.decay)
+        self.minimum = (self.minimum * (1 - self.decay)) + (self.maximum * self.decay)
+        self.maximum = (self.maximum * (1 - self.decay)) + (self.minimum * self.decay)
 
-        if self.scaleType == 1:
-            #Returns a value between -1 and 1 in relation to the maximum range
-            if x < center:
-                return -pow(maffs.clamp((x - center) / (self.min - center), 0, 1), self.curve)
-            elif x > center:
-                return pow(maffs.clamp((x - center) / (self.max - center), 0, 1), self.curve)
+    def normalizeSingleSided(self, value):
+        if self.calibrate:
+
+            if self.minimum is None or self.maximum is None:
+                self.minimum = value - 0.00001
+                self.maximum = value + 0.00001
+            self.minimum = min(self.minimum, value)
+            self.maximum = max(self.maximum, value)
+            self.span = self.maximum - self.minimum
+            self.calibrated = True
+
+        if self.calibrated:
+            value = value - self.minimum
+            normalizedValue = maffs.clamp(value/ self.span, 0, 1)
+            return pow(normalizedValue, self.curve)
+        else:
             return 0
-        if self.scaleType == 2:
-            #Returns a value between 0 and 1 in relation to the maximum range
-                return pow(maffs.clamp((x - self.min) / (self.max - self.min), 0, 1), self.curve)
-        if self.scaleType ==3:
-            self.stats.update(x)
-            #Returns a value between -1 and 1 in relation to the maximum range, 0 is the mean
-            if x < self.stats.mean:
-                return -pow(maffs.clamp((x - self.stats.mean) / (self.min - self.stats.mean), 0, 1), self.curve)
-            else:
-                return pow(maffs.clamp((x - self.stats.mean) / (self.max - self.stats.mean), 0, 1), self.curve)
-        return 0
 
+    def normalizeDoubleSided(self, value):
+        if self.calibrate:
+            self.stats.update(value)
+            self.calibrated = True
+        if self.calibrated:
+
+            stdDev = self.stats.getVariance()
+            if stdDev == 0:
+                return 0
+            if value < self.stats.mean:
+                return -pow(maffs.clamp(( self.stats.mean - value) / (stdDev * self.standardDeviations), 0, 1), self.curve)
+            else:
+                return pow(maffs.clamp((value - self.stats.mean) / (stdDev * self.standardDeviations), 0, 1), self.curve)

@@ -129,6 +129,11 @@ class FaceInfo():
         if self.conf < 0.6 or self.pnp_error > 300:
             return
 
+        maxY, maxX, maxZ = self.lms[0:66].max(0)
+        minY, minX, minZ = self.lms[0:66].min(0)
+
+        facePosition = [(maxX + minX)/2, (maxY + minY)/2,(maxZ + minZ)/2]
+
         self.pts_3d = self.normalize_pts3d(self.pts_3d)
-        self.currentAPIFeatures = self.apiFeatures.update(self.pts_3d, self.headRotation)
+        self.currentAPIFeatures = self.apiFeatures.update(self.pts_3d, self.headRotation, facePosition, self.conf)
 
