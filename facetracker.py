@@ -25,12 +25,11 @@ parser.add_argument("-s", "--silent", type=int, help="Set this to 1 to prevent t
 parser.add_argument("--model", type=int, help="This can be used to select the tracking model. Higher numbers are models with better tracking quality, but slower speed, except for model 4, which is wink optimized.", default=3, choices=[0, 1, 2, 3, 4])
 parser.add_argument("--preview", type=int, help="Preview the frames sent to the tracker", default=0)
 parser.add_argument("--numpy-threads", type=int, help="Numer of threads Numpy can use, doesn't seem to effect much", default=1)
-parser.add_argument("-T","--threads", type=int, help="Numer of threads used for landmark detection. Default is 1 (~15ms per frame on my computer), 2 gets slightly faster frames (~10ms on my computer), more than 2 doesn't seem to help much", default=1)
+parser.add_argument("-T","--threads", type=int, help="Numer of threads used for landmark detection. Default is 2", default=4)
 parser.add_argument("-v", "--visualize", type=int, help="Set this to 1 to visualize the tracking", default=0)
 parser.add_argument("--target-brightness", type=float, help="range 0.25-0.75, Target brightness of the brightness adjustment. Defaults to 0.55", default = 0.55)
 
 args = parser.parse_args()
-
 
 def visualize(frame, face):
 
@@ -76,16 +75,12 @@ visualizeFlag = (args.visualize == 1)
 silent = (args.silent == 1)
 fps = args.fps
 
-target_duration = 1 / (fps)
-
 #---Setting up worker threads---
 
-frameQueue = queue.Queue(maxsize=1)
-faceQueue = queue.Queue(maxsize=1)
-faceInfoQueue = queue.Queue()
+frameQueue = queue.Queue()
 featureQueue = queue.Queue()
 
-
+#Sending API calls on a separate thread so they don't block anything else
 api = api.VtubeStudioAPI()
 api.ip = args.ip
 api.port = args.api_port
@@ -104,7 +99,6 @@ Webcam.mirror = args.mirror_input
 Webcam.targetBrightness = min(max(args.target_brightness, 0.25), 0.75)
 Webcam.preview = (args.preview == 1)
 Webcam.frameQueue = frameQueue
-Webcam.faceQueue = faceQueue
 
 webcamThread = threading.Thread(target=Webcam.start)
 webcamThread.daemon = True
@@ -116,65 +110,57 @@ trackingTimeStats = maffs.Stats()
 frameTimeStats = maffs.Stats()
 latencyStats = maffs.Stats()
 
-lateFrames = 0
 frameCount = 0
 frameStart = 0.0
 sleepTime = 0.0
-frameTimeAdjustment = 0.
 tracker = Tracker(args)
 
 #don't start until the webcam is ready, then give it a little more time to fill it's buffer
 frameQueue.get()
-time.sleep(target_duration-0.01)
+time.sleep(1 / fps)
 
 trackingStart = time.perf_counter()
 
+frame_get = time.perf_counter()
+frame = None
 #---The actual main loop---
 try:
+    faceInfo = None
     while True:
         frameStart = time.perf_counter()
         frameCount += 1
+
         frame = frameQueue.get()
         frame_get = time.perf_counter()
         webcamStats.update(frame.cameraLatency)
 
-        faceInfo, frame.face  = tracker.predict(frame)
-
-        if frame.face is not None:
-            if faceQueue.qsize() < 1:
-                faceQueue.put(frame)
-
-        frameTime = time.perf_counter() - frame_get
-        trackingTimeStats.update(frameTime)
+        faceInfo = tracker.predict(frame)
 
         if visualizeFlag:
             visualize(frame, faceInfo)
 
-        duration = (time.perf_counter() - frameStart)
+        frameTime = time.perf_counter() - frame_get
+        trackingTimeStats.update(frameTime)
 
-        sleepTime = target_duration - duration + frameTimeAdjustment
+        #While timing is based on the webcam thread, I use this to even out the frame timing
+        targetTrackingTime = trackingTimeStats.getMean() + (3*trackingTimeStats.getVariance())
+        sleepTime = targetTrackingTime - frameTime
         if sleepTime > 0:
             time.sleep(sleepTime)
-        else:
-            print("Cannot maintain framerate")
-            lateFrames += 1
 
-        #If we don't have something to send to Vtube Studio we don't
         if faceInfo is not None:
             if featureQueue.qsize() < 1:
                 featureQueue.put(faceInfo.currentAPIFeatures)
+                latency = time.perf_counter() - frame.startTime
+                latencyStats.update(latency)
 
         else:
             print("No data sent to VTS")
 
+        duration = (time.perf_counter() - frameStart)
         timeSinceLastFrame = (time.perf_counter() - frameStart)
         frameTimeStats.update(timeSinceLastFrame)
-        latency = time.perf_counter() - frame.startTime
-        latencyStats.update(latency)
-        if latency > target_duration * 1.1:
-            frameTimeAdjustment = -0.0001
-        if latency < target_duration:
-            frameTimeAdjustment = 0.0
+
 
 except KeyboardInterrupt:
     if not silent:
@@ -201,6 +187,5 @@ print(f"Average tracking time: { (trackingTimeStats.getMean() * 1000):.3f}ms")
 #how long the app ran
 print(f"Run time (seconds): {(time.perf_counter() - trackingStart):.2f} s")
 print(f"Frames: {frameCount}")
-print(f"Late frames: {lateFrames}, {((lateFrames/frameCount)*100):.2f}% of frames")
 
 os._exit(0)

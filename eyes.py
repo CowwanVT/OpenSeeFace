@@ -4,7 +4,7 @@ import cv2
 cv2.setNumThreads(6)
 import maffs
 
-def rotate_image(image, a, center): #twice per frame, 0.2ms - 0.25ms each, improved to 0.15ms - 0.25ms
+def rotate_image(image, a, center):
     center = (float(center[0]), float(center[1]))
     a = math.degrees(a)
     M = cv2.getRotationMatrix2D(center,a, 1.0)
@@ -36,7 +36,7 @@ class Eye():
 
         #rotating an image is expensive and reduces clarity
         #so I just don't if it's a relatively small angle
-        if math.degrees(a) > 7.5 and math.degrees(a) < 352.5:
+        if math.degrees(a) > 15 and math.degrees(a) < 345:
             im = rotate_image(im, a, self.outerPoint)
         im = im[int(y1):int(y2), int(x1):int(x2)]
 
@@ -96,8 +96,6 @@ class Eye():
         if self.results[0][x,y] < confidenceThreshold:
             eye_y = self.lastEyeState[0]
             eye_x = self.lastEyeState[1]
-        self.clampEyeX(eye_x)
-        self.clampEyeY(eye_y)
 
         self.lastEyeState = [eye_y, eye_x]
 
@@ -114,29 +112,7 @@ class Eye():
         self.state  = [1.0, eye_y, eye_x, self.confidence]
         return
 
-    def clampEyeX(self, eye_x):
-        if eye_x < self.lastEyeState[1]:
-            delta = self.lastEyeState[1] - eye_x
-            delta = self.xStats.clamp(delta)
-            eye_x = self.lastEyeState[1] - delta
-        if eye_x > self.lastEyeState[1]:
-            delta = eye_x - self.lastEyeState[1]
-            delta = self.xStats.clamp(delta)
-            eye_x = self.lastEyeState[1] + delta
-
-    def clampEyeY(self, eye_y):
-        if eye_y < self.lastEyeState[0]:
-            delta = self.lastEyeState[0] - eye_y
-            delta = self.yStats.clamp(delta)
-            eye_y = self.lastEyeState[0] - delta
-        if eye_y > self.lastEyeState[0]:
-            delta = eye_y - self.lastEyeState[0]
-            delta = self.yStats.clamp(delta)
-            eye_y = self.lastEyeState[0] + delta
-
 class EyeTracker():
-    np.float32(np.array([-2.1179, -2.0357, -1.8044]))
-    std = np.float32(np.array([0.0171, 0.0175, 0.0174]))
     def __init__(self):
         self.leftEye = Eye(1)
         self.rightEye = Eye(0)
@@ -162,6 +138,7 @@ class EyeTracker():
             return [[1.,0.,0.,0.],[1.,0.,0.,0.]]    #Early exit if one of the eyes doesn't have data
         both_eyes = np.concatenate((self.rightEye.image, self.leftEye.image))
 
+        #Todo, move this out of this object into main tracker
         self.rightEye.results, self.leftEye.results = models.gazeTracker.run([], {"input": both_eyes})[0]
 
         self.rightEye.calculateEye()

@@ -1,5 +1,5 @@
 import os
-os.environ["OMP_NUM_THREADS"] = str(1)
+os.environ["OMP_NUM_THREADS"] = str(2)
 import dshowcapture
 import cv2
 cv2.setNumThreads(6)
@@ -10,35 +10,31 @@ import math
 
 class Webcam():
     def __init__(self):
-        self.cameraID = 0
+        self.cameraID = None
         self.width = 0
         self.height = 0
         self.fps = 0
-        self.targetFrameTime = 0.0
-        self.gamma = 0.7
         self.preview = False
         self.mirror = None
         self.frameQueue = None
-        self.faceQueue = None
+        self.frameTime = 0
         self.targetBrightness = 0.55
 
     def initialize(self):
         if os.name == 'nt':
-            self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+            self.cap = cv2.VideoCapture(self.cameraID, cv2.CAP_DSHOW)
         else:
-            self.cap = cv2.VideoCapture(0)
-
+            self.cap = cv2.VideoCapture(self.cameraID, cv2.CAP_V4L2   )
         if self.height > 480:
             self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
 
-        self.cap.set(38, 2)
+        #self.cap.set(38, 2)
         self.cap.set(3, self.width)
         self.cap.set(4, self.height)
         self.cap.set(cv2.CAP_PROP_FPS, self.fps)
-        self.targetFrameTime = 1 / (self.fps)
-        time.sleep(0.1)
         self.cap.read()
-        time.sleep(0.1)
+        time.sleep(3/self.fps)
+        self.frameTime = 1/self.fps
 
     def start(self):
         self.initialize()
@@ -46,89 +42,84 @@ class Webcam():
             frameStart= time.perf_counter()
             frame = self.getFrame()
             if frame.ret:
-                self.frameQueue.put(frame)
+                if self.frameQueue.qsize() < 1:
+                    self.frameQueue.put(frame)
                 if self.preview:
                     cv2.imshow("test",cv2.cvtColor(frame.image, cv2.COLOR_RGB2BGR))
                     cv2.waitKey(1)
-            if self.faceQueue.qsize() > 0:
-                self.updateGamma()
-            sleepTime = self.targetFrameTime - (time.perf_counter() - frameStart)
-            sleepTime = max(sleepTime, 0)
-            time.sleep(sleepTime)
+            time.sleep(self.frameTime)
+
 
     def getFrame(self):
-        self.cap.set(cv2.CAP_PROP_GAIN, 0)
-
         cameraStart = time.perf_counter()
 
         ret, image = self.cap.read()
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         if self.mirror and ret:
             image = cv2.flip(self.image, 1)
-        frame = Frame(ret, image, self.gamma, cameraStart )
+        frame = Frame(ret, image, cameraStart, self.targetBrightness )
         return frame
 
-    def updateGamma(self):
-        frame = self.faceQueue.get()
-
-        crop = frame.cropGreyscale()
-        averageBrightness = np.mean(crop)/256
-        gamma = math.log(self.targetBrightness, averageBrightness)
-        if math.isnan(gamma):
-            gamma = 0.7
-        if gamma < 0.5:
-            gamma = 0.5
-        if gamma > 1.5:
-            gamma = 1.5
-        self.gamma = gamma
-        return
-
 class Frame():
-    def __init__(self, ret, image, gamma, cameraStart):
-        self.greyscale = None
+    def __init__(self, ret, image, cameraStart, targetBrightness):
         self.face = None
         self.ret = ret
         self.cameraLatency = time.perf_counter() - cameraStart
+        self.image = image
+        self.adjustedImage = None
         if ret:
-            self.image = self.applyGamma(image, gamma)
             self.startTime = time.perf_counter()
             self.width = self.image.shape[1]
             self.height = self.image.shape[0]
+        self.targetBrightness = targetBrightness
 
-    def applyGamma(self,image, gamma):
-        img_yuv = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
-        #saving a copy of the brightness channel so I can use it to adjust the gamma based on where the face is in that frame
-        self.greyscale = img_yuv[:,:,0].copy()
+    def applyGamma(self):
+
+        y1, y2, x1, x2 = self.face
+        img_yuv = cv2.cvtColor(self.image, cv2.COLOR_RGB2YUV)
+        gamma = self.calculateGamma(img_yuv[y1:y2,x1:x2,0])
+
         #building a lookup table on the fly
         lookupTable = np.array(range(256))
         loopupTable = lookupTable/255
         lookupTable = np.power(loopupTable, gamma)*255
         img_yuv[:,:,0] = lookupTable[img_yuv[:,:,0]]
-        #I convert the image to RBG here because it was getting repeatedly converted in the face tracking
-        image = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)
-        return image
+        self.adjustedImage = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)
+
+    def calculateGamma(self, greyscaleImage):
+
+        averageBrightness = np.mean(greyscaleImage)/256
+        gamma = math.log(self.targetBrightness, averageBrightness)
+
+        if math.isnan(gamma):
+            gamma = 0.7
+
+        gamma = max(gamma, 0.5)
+        gamma = min(gamma, 1.5)
+        return gamma
 
     def crop(self, x1, x2, y1, y2):
-        x1 = self.clampX(x1)
-        x2 = self.clampX(x2)
-        y1 = self.clampY(y1)
-        y2 = self.clampY(y2)
-        crop = self.image[y1:y2,x1:x2]
-        return crop
-
-    def cropGreyscale(self):
-        x,y,w,h = self.face
-        x1 = x
-        y1 = y
-        x2 = x + w
-        y2 = y + h
 
         x1 = self.clampX(x1)
         x2 = self.clampX(x2)
         y1 = self.clampY(y1)
         y2 = self.clampY(y2)
-        crop = self.greyscale[y1:y2,x1:x2]
+
+        if self.adjustedImage is not None:
+            crop = self.adjustedImage[y1:y2,x1:x2]
+        else:
+            crop = self.image[y1:y2,x1:x2]
         return crop
 
+    def cropFace(self, x1, x2, y1, y2):
+        x1 = self.clampX(x1)
+        x2 = self.clampX(x2)
+        y1 = self.clampY(y1)
+        y2 = self.clampY(y2)
+        self.face = [y1, y2, x1, x2]
+        self.applyGamma()
+
+        return self.adjustedImage[y1:y2,x1:x2]
 
     def clampX(self, x):
         x = max(x, 0)
@@ -139,4 +130,3 @@ class Frame():
         y = max(y, 0)
         y = min (y, self.width - 1)
         return int(y)
-

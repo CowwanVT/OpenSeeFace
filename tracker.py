@@ -29,29 +29,31 @@ class Models():
         "lm_model3_opt.onnx",
         "lm_model4_opt.onnx"]
 
-    optimizationLevel = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
     def __init__(self, args):
+
         self.detectionThreshold = args.detection_threshold
 
         modelBasePath = os.path.join(os.path.dirname(__file__), os.path.join("models"))
-        providersList = onnxruntime.capi._pybind_state.get_available_providers()
+        providersList = ['CPUExecutionProvider']
         faceDetectModel = os.path.join(modelBasePath,"mnv3_detection_opt.onnx")
         gazeModel = os.path.join(modelBasePath, "mnv3_gaze32_split_opt.onnx")
         landmarksModel = os.path.join(modelBasePath, self.models[args.model])
         optimizationLevel = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
 
         options = onnxruntime.SessionOptions()
-        options.inter_op_num_threads = 1
+        options.inter_op_num_threads = 4
 
         options.intra_op_num_threads =  args.threads
-        options.execution_mode = onnxruntime.ExecutionMode.ORT_SEQUENTIAL
+        options.execution_mode = onnxruntime.ExecutionMode.ORT_PARALLEL
         options.graph_optimization_level = optimizationLevel
         options.log_severity_level = 3
+        options.add_session_config_entry("session.intra_op.allow_spinning", "0")
+        options.add_session_config_entry("session.inter_op.allow_spinning", "0")
 
         self.landmarks = onnxruntime.InferenceSession(landmarksModel, sess_options=options, providers=providersList)
         self.gazeTracker = onnxruntime.InferenceSession(gazeModel, sess_options=options, providers=providersList)
 
-        options.intra_op_num_threads =  2
+        options.intra_op_num_threads =  1
         self.faceDetection = onnxruntime.InferenceSession(faceDetectModel, sess_options=options, providers=providersList)
 
     def detectFaces(self, frame):
@@ -105,7 +107,7 @@ class Tracker():
         crop_x2 = int( x + w + (w * 0.1))
         crop_y2 = int( y + h + (h * 0.125))
 
-        im = frame.crop(crop_x1, crop_x2, crop_y1, crop_y2)
+        im = frame.cropFace(crop_x1, crop_x2, crop_y1, crop_y2)
         if im.shape[0] < 64 or im.shape[1] < 64:
             return (None, [], duration_pp )
 
@@ -118,12 +120,13 @@ class Tracker():
         crop_info = (crop_x1, crop_y1, scale_x, scale_y)
         return (crop, crop_info, duration_pp )
 
+    #All the stuff that happens for an early exit
     def early_exit(self, reason, start):
         print(reason)
         self.face = None
         duration = (time.perf_counter() - start) * 1000
         print(f"Took {duration:.2f}ms")
-        return None, None
+        return None
 
     def predict(self, frame):
         start = time.perf_counter()
@@ -132,17 +135,20 @@ class Tracker():
         duration_model = 0.0
         duration_pnp = 0.0
 
+        #If there's not already a face being tracked, find a new one
         if self.face is None:
             start_fd = time.perf_counter()
             self.face =  self.model.detectFaces(frame.image)
 
             duration_fd = 1000 * (time.perf_counter() - start_fd)
 
+            #If the face detection couldn't find anything, there's nothing to track
             if self.face is None:
                 return self.early_exit("No faces found", start)
 
         crop, crop_info, duration_pp = self.cropFace(frame)
 
+        #I don't know if this is actually a valid code path anymore
         if  crop is None:
             return self.early_exit("No valid crops", start)
 
@@ -154,7 +160,6 @@ class Tracker():
 
         eye_state = self.EyeTracker.get_eye_state(self.model, frame, lms)
         self.face_info.update((confidence, (lms, eye_state)))
-
 
         duration_model = 1000 * (time.perf_counter() - start_model)
         start_pnp = time.perf_counter()
@@ -178,4 +183,4 @@ class Tracker():
         print(f"Took {duration:.2f}ms, detect: {duration_fd:.2f}ms,", end = " ")
         print(f"crop: {duration_pp:.2f}ms, track: {duration_model:.2f}ms", end = " ")
         print(f"3D points: {duration_pnp:.2f}ms")
-        return face_info, self.face
+        return face_info
