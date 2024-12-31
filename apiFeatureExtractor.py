@@ -14,16 +14,16 @@ class APIfeatureExtractor():
         self.eyeOpenLeft = feature.Feature(scaleType = 2, curve = 1, decay=0.0001,  spring = 1, friction = 0.5, mass = 2)
         self.eyeOpenRight = feature.Feature(scaleType = 2, curve = 1, decay=0.0001,  spring = 1, friction = 0.5, mass = 2)
 
-        self.eyeX = feature.Feature(curve = 1, scaleType = 1,  spring = 0.9, friction = 0.5, mass = 1)
-        self.eyeY = feature.Feature(curve = 1, scaleType = 1,  spring = 0.9, friction = 0.5, mass = 1)
+        self.eyeX = feature.Feature(curve = 1, scaleType = 1,  spring = 0.8, friction = 0.5, mass = 1)
+        self.eyeY = feature.Feature(curve = 1, scaleType = 1,  spring = 0.8, friction = 0.5, mass = 1.5)
 
         self.browLeftY = feature.Feature( scaleType = 1.5, curve = 1,  spring = 1, friction = 0.5, mass = 2)
         self.browRightY = feature.Feature( scaleType = 1.5, curve = 1,  spring = 1, friction = 0.5, mass = 2)
         self.brows = feature.Feature( scaleType = 1.5, curve = 1,  spring = 1, friction = 0.5, mass = 2)
 
-        self.faceAngleX = feature.Feature( curve = 1, scaleType = 1, spring = 0.33, friction = 0.33, mass = 2)
+        self.faceAngleX = feature.Feature( curve = 1, scaleType = 1, spring = 0.33, friction = 0.33, mass = 2.5)
         self.faceAngleY = feature.Feature( curve = 1, scaleType = 1, spring = 0.33, friction = 0.33, mass = 2)
-        self.faceAngleZ = feature.Feature( curve = 1.5, scaleType = 1, spring = 0.33, friction = 0.33, mass = 3)
+        self.faceAngleZ = feature.Feature( curve = 1.5, scaleType = 1, spring = 0.33, friction = 0.33, mass = 5)
 
         self.facePositionX = feature.Feature( curve = 1, scaleType = 1, spring = 0.33, friction = 0.33, mass = 3)
         self.facePositionY = feature.Feature( curve = 1, scaleType = 1, spring = 0.33, friction = 0.33, mass = 3)
