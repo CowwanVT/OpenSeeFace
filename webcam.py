@@ -19,6 +19,7 @@ class Webcam():
         self.frameQueue = None
         self.frameTime = 0
         self.targetBrightness = 0.55
+        self.bufferFrames = -1
 
     def initialize(self):
         if os.name == 'nt':
@@ -28,7 +29,10 @@ class Webcam():
         if self.height > 480:
             self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
 
-        #self.cap.set(38, 2)
+        if self.bufferFrames >= 0:
+            self.cap.set(38, self.bufferFrames)
+
+
         self.cap.set(3, self.width)
         self.cap.set(4, self.height)
         self.cap.set(cv2.CAP_PROP_FPS, self.fps)

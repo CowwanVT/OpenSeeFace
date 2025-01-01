@@ -28,6 +28,7 @@ parser.add_argument("--numpy-threads", type=int, help="Numer of threads Numpy ca
 parser.add_argument("-T","--threads", type=int, help="Numer of threads used for landmark detection. Default is 2", default=4)
 parser.add_argument("-v", "--visualize", type=int, help="Set this to 1 to visualize the tracking", default=0)
 parser.add_argument("--target-brightness", type=float, help="range 0.25-0.75, Target brightness of the brightness adjustment. Defaults to 0.55", default = 0.55)
+parser.add_argument("-b", "--buffer_frames", type=int, help="Set the number of frames the webcam can buffer, set to -1 for default", default = -1)
 
 args = parser.parse_args()
 
@@ -98,6 +99,7 @@ Webcam.fps = args.fps
 Webcam.mirror = args.mirror_input
 Webcam.targetBrightness = min(max(args.target_brightness, 0.25), 0.75)
 Webcam.preview = (args.preview == 1)
+Webcam.bufferFrames = args.buffer_frames
 Webcam.frameQueue = frameQueue
 
 webcamThread = threading.Thread(target=Webcam.start)
