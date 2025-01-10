@@ -4,8 +4,8 @@ import maffs
 class APIfeatureExtractor():
     def __init__(self):
         self.jawOpen = feature.Feature(scaleType = 2, curve = 0.5,  spring = 1, friction = 0.5, mass = 2)
-        self.mouthX = feature.Feature(curve = 1, scaleType = 1,  spring = 0.5, friction = 0.33, mass = 1, originSpring = 0.1)
-        self.mouthOpen = feature.Feature(scaleType = 2, curve = 0.66, decay=0.0001,  spring = 1, friction = 0.5, mass = 0.75, originSpring = 0.1)
+        self.mouthX = feature.Feature(curve = 1, scaleType = 1,  spring = 0.5, friction = 0.33, mass = 1, originSpring = 0.05)
+        self.mouthOpen = feature.Feature(scaleType = 2, curve = 1, decay=0.0001,  spring = 1, friction = 0.6, mass = 0.6, originSpring = 0.1)
         self.mouthSmile= feature.Feature(curve = 2,  spring = 0.75, friction = 0.5, mass = 1, originSpring = 0.1)
         self.mouthPucker = feature.Feature(curve = 1.5,  spring = 0.75, friction = 0.5, mass = 1)
 
@@ -14,16 +14,16 @@ class APIfeatureExtractor():
         self.eyeOpenLeft = feature.Feature(scaleType = 2, curve = 1, decay=0.0001,  spring = 1, friction = 0.5, mass = 2)
         self.eyeOpenRight = feature.Feature(scaleType = 2, curve = 1, decay=0.0001,  spring = 1, friction = 0.5, mass = 2)
 
-        self.eyeX = feature.Feature(curve = 1, scaleType = 1,  spring = 0.8, friction = 0.5, mass = 1, statisticalSmoothing = True, originSpring = 0.1)
-        self.eyeY = feature.Feature(curve = 1, scaleType = 1,  spring = 0.8, friction = 0.5, mass = 1.5, statisticalSmoothing = True, originSpring = 0.1)
+        self.eyeX = feature.Feature(curve = 1, scaleType = 1,  spring = 0.8, friction = 0.5, mass = 1, originSpring = 0.1)
+        self.eyeY = feature.Feature(curve = 1, scaleType = 1,  spring = 0.8, friction = 0.5, mass = 1.5, originSpring = 0.1)
 
         self.browLeftY = feature.Feature( scaleType = 2, curve = 1,  spring = 1, friction = 0.5, mass = 2)
         self.browRightY = feature.Feature( scaleType = 2, curve = 1,  spring = 1, friction = 0.5, mass = 2)
         self.brows = feature.Feature( scaleType = 2, curve = 1,  spring = 1, friction = 0.5, mass = 2)
 
-        self.faceAngleX = feature.Feature( curve = 1, scaleType = 1, spring = 0.33, friction = 0.33, mass = 1, originSpring = 0.05)
-        self.faceAngleY = feature.Feature( curve = 1, scaleType = 1, spring = 0.33, friction = 0.33, mass = 2, originSpring = 0.1)
-        self.faceAngleZ = feature.Feature( curve = 1, scaleType = 1, spring = 0.33, friction = 0.33, mass = 2, originSpring = 0.2)
+        self.faceAngleX = feature.Feature( curve = 1.1, scaleType = 1, spring = 0.33, friction = 0.33, mass = 1, originSpring = 0.1)
+        self.faceAngleY = feature.Feature( curve = 1.1, scaleType = 1, spring = 0.33, friction = 0.33, mass = 2, originSpring = 0.1)
+        self.faceAngleZ = feature.Feature( curve = 1.1, scaleType = 1, spring = 0.33, friction = 0.33, mass = 2, originSpring = 0.3)
 
         self.facePositionX = feature.Feature( curve = 1, scaleType = 1, spring = 0.33, friction = 0.33, mass = 3, originSpring = 0.1)
         self.facePositionY = feature.Feature( curve = 1, scaleType = 1, spring = 0.33, friction = 0.33, mass = 3, originSpring = 0.2)

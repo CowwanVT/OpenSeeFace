@@ -7,7 +7,7 @@ import time
 from tracker import Tracker
 import webcam
 import cv2
-cv2.setNumThreads(6)
+cv2.setNumThreads(4)
 import maffs
 import api
 
@@ -25,10 +25,11 @@ parser.add_argument("-s", "--silent", type=int, help="Set this to 1 to prevent t
 parser.add_argument("--model", type=int, help="This can be used to select the tracking model. Higher numbers are models with better tracking quality, but slower speed, except for model 4, which is wink optimized.", default=3, choices=[0, 1, 2, 3, 4])
 parser.add_argument("--preview", type=int, help="Preview the frames sent to the tracker", default=0)
 parser.add_argument("--numpy-threads", type=int, help="Numer of threads Numpy can use, doesn't seem to effect much", default=1)
-parser.add_argument("-T","--threads", type=int, help="Numer of threads used for landmark detection. Default is 2", default=4)
+parser.add_argument("-T","--threads", type=int, help="Numer of threads used for landmark detection. Default is 2", default=2)
 parser.add_argument("-v", "--visualize", type=int, help="Set this to 1 to visualize the tracking", default=0)
 parser.add_argument("--target-brightness", type=float, help="range 0.25-0.75, Target brightness of the brightness adjustment. Defaults to 0.55", default = 0.55)
 parser.add_argument("-b", "--buffer_frames", type=int, help="Set the number of frames the webcam can buffer, set to -1 for default", default = -1)
+parser.add_argument("-q", "--frame_queue_length", type=int, help="Set the number of frames allowed in the frame queue, default is 1", default = 1)
 
 args = parser.parse_args()
 
@@ -101,6 +102,7 @@ Webcam.targetBrightness = min(max(args.target_brightness, 0.25), 0.75)
 Webcam.preview = (args.preview == 1)
 Webcam.bufferFrames = args.buffer_frames
 Webcam.frameQueue = frameQueue
+Webcam.maxQueueSize = args.frame_queue_length
 
 webcamThread = threading.Thread(target=Webcam.start)
 webcamThread.daemon = True
@@ -116,13 +118,14 @@ frameCount = 0
 frameStart = 0.0
 sleepTime = 0.0
 tracker = Tracker(args)
+targetFrameTime = 1 / fps
 
 #don't start until the webcam is ready, then give it a little more time to fill it's buffer
 frameQueue.get()
-time.sleep(1 / fps)
+time.sleep(targetFrameTime*2)
 
 trackingStart = time.perf_counter()
-
+lateFrames = 0
 frame_get = time.perf_counter()
 frame = None
 #---The actual main loop---
@@ -131,24 +134,33 @@ try:
     while True:
         frameStart = time.perf_counter()
         frameCount += 1
+        faceInfo = None
+        if frameQueue.qsize() > 0:
+            frame = frameQueue.get()
 
-        frame = frameQueue.get()
-        frame_get = time.perf_counter()
-        webcamStats.update(frame.cameraLatency)
+            frame_get = time.perf_counter()
+            webcamStats.update(frame.cameraLatency)
 
-        faceInfo = tracker.predict(frame)
+            faceInfo = tracker.predict(frame)
 
-        if visualizeFlag:
-            visualize(frame, faceInfo)
+            if visualizeFlag:
+                visualize(frame, faceInfo)
 
-        frameTime = time.perf_counter() - frame_get
-        trackingTimeStats.update(frameTime)
+            frameTime = time.perf_counter() - frame_get
+            trackingTimeStats.update(frameTime)
+        else:
+            print("Camera late, skipping")
+            lateFrames = lateFrames + 1
 
         #While timing is based on the webcam thread, I use this to even out the frame timing
-        targetTrackingTime = trackingTimeStats.getMean() + (3*trackingTimeStats.getVariance())
-        sleepTime = targetTrackingTime - frameTime
+        #targetTrackingTime = trackingTimeStats.getMean() + (3*trackingTimeStats.getVariance())
+
+
+        sleepTime = targetFrameTime - (time.perf_counter() - frameStart)
         if sleepTime > 0:
             time.sleep(sleepTime)
+        else:
+            lateFrames = lateFrames + 1
 
         if faceInfo is not None:
             if featureQueue.qsize() < 1:
@@ -158,8 +170,6 @@ try:
 
         else:
             print("No data sent to VTS")
-
-        duration = (time.perf_counter() - frameStart)
         timeSinceLastFrame = (time.perf_counter() - frameStart)
         frameTimeStats.update(timeSinceLastFrame)
 
@@ -189,5 +199,7 @@ print(f"Average tracking time: { (trackingTimeStats.getMean() * 1000):.3f}ms")
 #how long the app ran
 print(f"Run time (seconds): {(time.perf_counter() - trackingStart):.2f} s")
 print(f"Frames: {frameCount}")
+print(f"Late frames: {lateFrames}, {lateFrames/frameCount:.3f}% of frames ")
+
 
 os._exit(0)

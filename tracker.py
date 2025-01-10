@@ -3,7 +3,7 @@ os.environ["OMP_NUM_THREADS"] = str(1)
 import numpy as np
 import onnxruntime
 import cv2
-cv2.setNumThreads(6)
+cv2.setNumThreads(4)
 import time
 import eyes
 import landmarks
@@ -41,7 +41,7 @@ class Models():
         optimizationLevel = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
 
         options = onnxruntime.SessionOptions()
-        options.inter_op_num_threads = 4
+        options.inter_op_num_threads = 1
 
         options.intra_op_num_threads =  args.threads
         options.execution_mode = onnxruntime.ExecutionMode.ORT_PARALLEL

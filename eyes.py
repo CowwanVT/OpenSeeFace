@@ -1,7 +1,7 @@
 import numpy as np
 import math
 import cv2
-cv2.setNumThreads(6)
+cv2.setNumThreads(4)
 import maffs
 
 def rotate_image(image, a, center):

@@ -1,7 +1,7 @@
 import maffs
 
 class Feature():
-    def __init__(self,decay=0.00001, curve=1, scaleType = 1,  spring = 1, friction = 0.5, mass = 2, standardDeviations = 3, statisticalSmoothing = False, originSpring = 0.0):
+    def __init__(self,decay=0.00001, curve=1, scaleType = 1,  spring = 1, friction = 0.5, mass = 2, standardDeviations = 2, originSpring = 0.0):
         self.minimum = None
         self.maximum = None
         self.span = None
@@ -10,8 +10,6 @@ class Feature():
         self.curve = curve
         self.scaleType = scaleType
         self.valueStats = maffs.Stats()
-        self.speedStats = maffs.Stats()
-        self.accelerationStats = maffs.Stats()
         self.standardDeviations = standardDeviations
         self.mass = mass
         self.speed = 0
@@ -19,9 +17,6 @@ class Feature():
         self.spring = spring
         self.friction = friction
         self.confidenceThrehold = 0.85
-        self.raw = 0.0
-        self.previousRaw = 0.0
-        self.statisticalSmoothing = statisticalSmoothing
         self.originSpring = originSpring
 
     def update(self, value, confidence):
@@ -45,11 +40,7 @@ class Feature():
     def smoothMotion(self, value):
         delta =  value - self.old
         acceleration = delta - self.speed
-        #acceleration = self.accelerationStats.clamp(acceleration)
         delta = self.speed + acceleration
-        if self.statisticalSmoothing:
-            delta = self.speedStats.clamp(delta)
-
         force = delta * self.spring
         if self.originSpring != 0:
             force = force - (value * self.originSpring)

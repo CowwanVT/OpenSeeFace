@@ -1,5 +1,5 @@
 import os
-os.environ["OMP_NUM_THREADS"] = str(2)
+os.environ["OMP_NUM_THREADS"] = str(1)
 import dshowcapture
 import cv2
 cv2.setNumThreads(6)
@@ -17,9 +17,10 @@ class Webcam():
         self.preview = False
         self.mirror = None
         self.frameQueue = None
-        self.frameTime = 0
+        self.targetFrametime = 0
         self.targetBrightness = 0.55
         self.bufferFrames = -1
+        self.maxQueueSize = 1
 
     def initialize(self):
         if os.name == 'nt':
@@ -38,7 +39,7 @@ class Webcam():
         self.cap.set(cv2.CAP_PROP_FPS, self.fps)
         self.cap.read()
         time.sleep(3/self.fps)
-        self.frameTime = 1/self.fps
+        self.targetFrametime = 1/self.fps
 
     def start(self):
         self.initialize()
@@ -46,12 +47,15 @@ class Webcam():
             frameStart= time.perf_counter()
             frame = self.getFrame()
             if frame.ret:
-                if self.frameQueue.qsize() < 1:
+                if self.frameQueue.qsize() < self.maxQueueSize :
                     self.frameQueue.put(frame)
                 if self.preview:
                     cv2.imshow("test",cv2.cvtColor(frame.image, cv2.COLOR_RGB2BGR))
                     cv2.waitKey(1)
-            time.sleep(self.frameTime)
+            frameDuration = time.perf_counter() - frameStart
+            sleepTime = self.targetFrametime - frameDuration
+            if sleepTime > 0:
+                time.sleep(sleepTime)
 
 
     def getFrame(self):
