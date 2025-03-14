@@ -24,9 +24,9 @@ class Webcam():
 
     def initialize(self):
         if os.name == 'nt':
-            self.cap = cv2.VideoCapture(self.cameraID, cv2.CAP_DSHOW)
+            self.cap = cv2.VideoCapture(int(self.cameraID), cv2.CAP_DSHOW)
         else:
-            self.cap = cv2.VideoCapture(self.cameraID, cv2.CAP_V4L2   )
+            self.cap = cv2.VideoCapture(int(self.cameraID), cv2.CAP_V4L2   )
         if self.height > 480:
             self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
 
