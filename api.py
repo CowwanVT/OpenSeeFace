@@ -25,12 +25,8 @@ class VtubeStudioAPI():
         request["requestID"] = self.requestID
         self.requestID += 1
         response = None
-        while response is None:
-            try:
-                self.vtsWebsocket.send(json.dumps(request))
-                response = json.loads(self.vtsWebsocket.recv())
-            except:
-                self.connectToVTS()
+        self.vtsWebsocket.send(json.dumps(request))
+        response = json.loads(self.vtsWebsocket.recv())
 
         return response
 
@@ -184,7 +180,7 @@ class VtubeStudioAPI():
             }
         for parameter in parameterList:
             if parameter[0] in self.customParameterList:
-                parameterEntry = self.parameterValueEntry(parameter[0], parameter[1])
+                parameterEntry = self.parameterValueEntry(parameter[0], str(parameter[1]))
                 request["data"]["parameterValues"].append(parameterEntry)
 
         if len(request["data"]["parameterValues"]) > 0:

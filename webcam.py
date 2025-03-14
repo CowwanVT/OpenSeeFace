@@ -56,6 +56,8 @@ class Webcam():
             sleepTime = self.targetFrametime - frameDuration
             if sleepTime > 0:
                 time.sleep(sleepTime)
+            else:
+                time.sleep(self.targetFrametime/10)
 
 
     def getFrame(self):

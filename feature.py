@@ -1,7 +1,7 @@
 import maffs
 
 class Feature():
-    def __init__(self,decay=0.00001, curve=1, scaleType = 1,  spring = 1, friction = 0.5, mass = 2, standardDeviations = 2, originSpring = 0.0):
+    def __init__(self,decay=0.00001, curve=1, scaleType = 1,  spring = 1, friction = 0.5, mass = 2, standardDeviations = 3, originSpring = 0.0):
         self.minimum = None
         self.maximum = None
         self.span = None
@@ -9,14 +9,14 @@ class Feature():
         self.decay = decay
         self.curve = curve
         self.scaleType = scaleType
-        self.valueStats = maffs.Stats()
+        self.valueStats = maffs.Stats(clampDeviations = standardDeviations)
         self.standardDeviations = standardDeviations
         self.mass = mass
         self.speed = 0
         self.old = 0
         self.spring = spring
         self.friction = friction
-        self.confidenceThrehold = 0.85
+        self.confidenceThrehold = 0.7
         self.originSpring = originSpring
 
     def update(self, value, confidence):

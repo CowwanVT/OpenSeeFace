@@ -128,6 +128,8 @@ trackingStart = time.perf_counter()
 lateFrames = 0
 frame_get = time.perf_counter()
 frame = None
+
+timer = time.perf_counter()
 #---The actual main loop---
 try:
     faceInfo = None
@@ -146,27 +148,26 @@ try:
             if visualizeFlag:
                 visualize(frame, faceInfo)
 
-            frameTime = time.perf_counter() - frame_get
-            trackingTimeStats.update(frameTime)
+            trackingTime = time.perf_counter() - frame_get
+            trackingTimeStats.update(trackingTime)
         else:
             print("Camera late, skipping")
             lateFrames = lateFrames + 1
 
-        #While timing is based on the webcam thread, I use this to even out the frame timing
-        #targetTrackingTime = trackingTimeStats.getMean() + (3*trackingTimeStats.getVariance())
-
-
-        sleepTime = targetFrameTime - (time.perf_counter() - frameStart)
+        sleepTime = targetFrameTime - (time.perf_counter() - timer)
         if sleepTime > 0:
             time.sleep(sleepTime)
         else:
             lateFrames = lateFrames + 1
+        timer = time.perf_counter()
 
         if faceInfo is not None:
             if featureQueue.qsize() < 1:
                 featureQueue.put(faceInfo.currentAPIFeatures)
                 latency = time.perf_counter() - frame.startTime
                 latencyStats.update(latency)
+            else:
+                print("too many requests")
 
         else:
             print("No data sent to VTS")

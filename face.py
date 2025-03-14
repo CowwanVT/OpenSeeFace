@@ -126,8 +126,8 @@ class FaceInfo():
         return pts_3d
 
     def adjust_3d(self):
-        if self.conf < 0.6 or self.pnp_error > 300:
-            return
+        #if self.conf < 0.6 or self.pnp_error > 300:
+            #return
 
         maxY, maxX, maxZ = self.lms[0:66].max(0)
         minY, minX, minZ = self.lms[0:66].min(0)

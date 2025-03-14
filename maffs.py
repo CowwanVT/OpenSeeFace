@@ -57,13 +57,14 @@ def clamp_to_im(pt, w, h):
     return (int(x), int(y))
 
 class Stats():
-    def __init__(self):
+    def __init__(self, clampDeviations = 3):
         self.count = 0.
         self.mean = 0.
         self.M2 = 0.
         self.maximum = 0.
         self.minimum = 0.
         self.total = 0.
+        self.clampDeviations = clampDeviations
 
     def update(self,  new_value):
         self.total+= new_value
@@ -96,7 +97,7 @@ class Stats():
             return value
         else:
             self.update(value)
-            value = min( value, self.mean + (2* abs(self.getSampleVariance())))
-            value = max( value, self.mean - (2* abs(self.getSampleVariance())))
+            value = min( value, self.mean + (self.clampDeviations * abs(self.getSampleVariance())))
+            value = max( value, self.mean - (self.clampDeviations * abs(self.getSampleVariance())))
             return value
 
