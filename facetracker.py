@@ -70,11 +70,12 @@ def visualize(frame, face):
     cv2.imshow("Visualization",cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
     cv2.waitKey(1)
 
-def exitThread():
+def exitThread(exitQueue):
     input()
-    os._exit(0)
+    exitQueue.put(0)
 
-exitThread = threading.Thread(target = exitThread)
+exitQueue = queue.Queue()
+exitThread = threading.Thread(target = exitThread, args=(exitQueue,))
 exitThread.daemon = True
 exitThread.start()
 print("Press ENTER to exit at any time")
@@ -142,7 +143,7 @@ timer = time.perf_counter()
 #---The actual main loop---
 try:
     faceInfo = None
-    while True:
+    while exitQueue.qsize() == 0:
         frameStart = time.perf_counter()
         frameCount += 1
         faceInfo = None
