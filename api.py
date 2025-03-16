@@ -8,6 +8,7 @@ import queue
 
 class VtubeStudioAPI():
 
+    ##List of valid parameters
     customParameterList = ["JawOpen", "MouthPressLipOpen", "MouthFunnel", "MouthPucker", "EyeSquintR", "EyeSquintL", "MouthX", "MouthOpen", "EyeOpenLeft", "EyeOpenRight", "MouthSmile", "BrowLeftY", "BrowRightY", "Brows", "FaceAngleY", "FaceAngleZ", "FaceAngleX", "EyeRightX", "EyeRightY", "EyeLeftX", "EyeLeftY", "FacePositionX","FacePositionY","FacePositionZ"]
 
     def __init__(self):
@@ -20,15 +21,27 @@ class VtubeStudioAPI():
         self.authenticated = False
         self.authFail = False
         self.featureQueue = None
-
+        self.connected = False
     def sendRequest(self, request):
         request["requestID"] = self.requestID
         self.requestID += 1
         response = None
-        self.vtsWebsocket.send(json.dumps(request))
-        response = json.loads(self.vtsWebsocket.recv())
+        while response is None:
+            try:
+                self.vtsWebsocket.send(json.dumps(request))
+                response = json.loads(self.vtsWebsocket.recv())
+            except:
+                self.connectToVTS()
 
         return response
+
+    def getStatusMessage(self):
+        if not self.connected:
+            return "Not connected to VTS"
+        if not self.authenticated:
+            return "Not authenticated with VTS"
+        return "API normal"
+
 
     def start(self):
         self.connectToVTS()
@@ -39,6 +52,7 @@ class VtubeStudioAPI():
                 self.setParameters(parameterList)
 
     def connectToVTS(self):
+        self.connected = False
         self.vtsWebsocket = None
         while self.vtsWebsocket is None:
             try:
@@ -47,6 +61,7 @@ class VtubeStudioAPI():
                 time.sleep(1)
 
         self.readKeyFile()
+        self.connected = True
         return
 
 
@@ -63,6 +78,7 @@ class VtubeStudioAPI():
                         }
                     }
 
+        self.authenticated = False
         request["data"]["authenticationToken"] = self.authKey
         request["requestID"] = self.requestID
         self.requestID += 1

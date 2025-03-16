@@ -70,6 +70,15 @@ def visualize(frame, face):
     cv2.imshow("Visualization",cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
     cv2.waitKey(1)
 
+def exitThread():
+    input()
+    os._exit(0)
+
+exitThread = threading.Thread(target = exitThread)
+exitThread.daemon = True
+exitThread.start()
+print("Press ENTER to exit at any time")
+
 #processing args
 height = args.height
 width = args.width
@@ -167,7 +176,7 @@ try:
                 latency = time.perf_counter() - frame.startTime
                 latencyStats.update(latency)
             else:
-                print("too many requests")
+                print(api.getStatusMessage())
 
         else:
             print("No data sent to VTS")
