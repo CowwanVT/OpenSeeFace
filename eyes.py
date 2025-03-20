@@ -16,6 +16,7 @@ class Eye():
     mean = np.float32(np.array([-2.1179, -2.0357, -1.8044]))
     std = np.float32(np.array([0.0171, 0.0175, 0.0174]))
     def __init__(self,index):
+        self.offset = None
         self.index = index
         self.state = [1.,0.,0.,0.]
         self.image = None
@@ -36,7 +37,7 @@ class Eye():
 
         #rotating an image is expensive and reduces clarity
         #so I just don't if it's a relatively small angle
-        if math.degrees(a) > 15 and math.degrees(a) < 345:
+        if 15 < math.degrees(a) < 345:
             im = rotate_image(im, a, self.outerPoint)
         im = im[int(y1):int(y2), int(x1):int(x2)]
 

@@ -28,8 +28,8 @@ def distanceFromLine(point, linePointA, linePointB):
     distance = 2* (lenA * lenB)/lenC
     return distance
 
-def clamp (value, minimum, maxium):
-    return max(min(value,maxium),minimum)
+def clamp (value, minimum, maximum):
+    return max(min(value, maximum), minimum)
 
 def rotate(origin, point, a):
     x, y = point - origin
@@ -54,7 +54,7 @@ def clamp_to_im(pt, w, h):
         x = w-1
     if y >= h:
         y = h-1
-    return (int(x), int(y))
+    return int(x), int(y)
 
 class Stats():
     def __init__(self, clampDeviations = 3):

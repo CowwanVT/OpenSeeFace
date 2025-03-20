@@ -78,6 +78,11 @@ class FaceInfo():
         ], np.float32)
     contourPoints = [0,1,8,15,16,27,28,29,30,31,32,33,34,35]
     def __init__(self):
+        self.currentAPIFeatures = None
+        self.conf = None
+        self.lms = None
+        self.eye_state = None
+        self.pts_3d = None
         self.reset()
         self.alive = False
         self.base_scale_v = self.face_3d[27:30, 1] - self.face_3d[28:31, 1]
@@ -135,5 +140,5 @@ class FaceInfo():
         facePosition = [(maxX + minX)/2, (maxY + minY)/2,(maxZ + minZ)/2]
 
         self.pts_3d = self.normalize_pts3d(self.pts_3d)
-        self.currentAPIFeatures = self.apiFeatures.update(self.pts_3d, self.headRotation, facePosition, self.conf)
+        self.currentAPIFeatures = self.apiFeatures.update(self.pts_3d, self.headRotation, facePosition, self.conf, self.eye_state)
 

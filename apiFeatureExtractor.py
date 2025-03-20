@@ -17,6 +17,11 @@ class APIfeatureExtractor():
         self.eyeX = feature.Feature(curve = 1, scaleType = 1,  spring = 0.8, friction = 0.5, mass = 1, originSpring = 0.1)
         self.eyeY = feature.Feature(curve = 1, scaleType = 1,  spring = 0.8, friction = 0.5, mass = 1.5, originSpring = 0.1)
 
+        self.r_eye_x = feature.Feature(curve = 1, scaleType = 1,  spring = 0.8, friction = 0.5, mass = 1, originSpring = 0.1)
+        self.r_eye_y = feature.Feature(curve = 1, scaleType = 1,  spring = 0.8, friction = 0.5, mass = 1.5, originSpring = 0.1)
+        self.l_eye_x = feature.Feature(curve = 1, scaleType = 1,  spring = 0.8, friction = 0.5, mass = 1, originSpring = 0.1)
+        self.l_eye_y = feature.Feature(curve = 1, scaleType = 1,  spring = 0.8, friction = 0.5, mass = 1.5, originSpring = 0.1)
+
         self.browLeftY = feature.Feature( scaleType = 2, curve = 1,  spring = 1, friction = 0.5, mass = 2)
         self.browRightY = feature.Feature( scaleType = 2, curve = 1,  spring = 1, friction = 0.5, mass = 2)
         self.brows = feature.Feature( scaleType = 2, curve = 1,  spring = 1, friction = 0.5, mass = 2)
@@ -34,7 +39,7 @@ class APIfeatureExtractor():
 
         self.calibrated = False
 
-    def update(self, pts, rotation, facePosition, confidence):
+    def update(self, pts, rotation, facePosition, confidence, eye_state):
 
         if confidence > 0.85:
             calibrate = True
@@ -93,15 +98,32 @@ class APIfeatureExtractor():
             f = maffs.euclideanDistance(maffs.average3d(pts[[17,21,22,26]]), maffs.average3d(pts[[36,39,42,45]]))
             features.append(["Brows", self.brows.update(f, confidence)])
 
+
             if eye > 0.3333:
 
-                f = -((pts[66][0] + pts[67][0])/2)
-                bothEyesX = self.eyeX.update(f, confidence)
+                r_eye_confidence = eye_state[0][3]
+
+                l_eye_confidence = eye_state[1][3]
+
+                total_confidence = r_eye_confidence + l_eye_confidence
+
+                r_x = self.r_eye_x.update(pts[66][0], confidence) * r_eye_confidence
+                l_x = self.l_eye_x.update(pts[67][0], confidence) * l_eye_confidence
+                r_y = self.r_eye_y.update(pts[66][1], confidence) * r_eye_confidence
+                l_y = self.l_eye_y.update(pts[67][1], confidence) * l_eye_confidence
+
+
+                bothEyesX = (r_x + l_x) / -total_confidence
+                bothEyesY = (r_y + l_y) / -total_confidence
+
+
+                #f = -((pts[66][0] + pts[67][0])/2)
+                #bothEyesX = self.eyeX.update(f, confidence)
                 features.append(["EyeRightX", bothEyesX])
                 features.append(["EyeLeftX", bothEyesX])
 
-                f = -((pts[66][1] + pts[67][1])/2)
-                bothEyesY = self.eyeY.update(f, confidence)
+                #f = -((pts[66][1] + pts[67][1])/2)
+                #bothEyesY = self.eyeY.update(f, confidence)
                 features.append(["EyeRightY", bothEyesY])
                 features.append(["EyeLeftY", bothEyesY])
                 self.previousEyeX = bothEyesX
